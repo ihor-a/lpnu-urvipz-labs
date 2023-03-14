@@ -1,6 +1,5 @@
 package com.example.lpnuurvipzlabs.service;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -75,6 +74,6 @@ public class Lab1QuantityService extends Lab1Base {
     }
 
     protected void appendResultParamValue(String paramName, int val) {
-        appendResultText(String.format("%s: %10d", paramName, val));
+        appendResultText(String.format("%s: %9d", paramName, val));
     }
 }
