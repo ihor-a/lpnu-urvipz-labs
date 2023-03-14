@@ -3,7 +3,7 @@ package com.example.lpnuurvipzlabs.service;
 import java.util.Arrays;
 
 abstract class TextResultBase {
-    protected String result;
+    protected String result = "";
 
     public String getResult() {
         return result;
