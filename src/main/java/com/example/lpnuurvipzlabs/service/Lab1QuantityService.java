@@ -8,6 +8,7 @@ public class Lab1QuantityService extends Lab1Base {
 
     protected QuantityValues mP1Quantity, mP2Quantity, mP3Quantity;
 
+    @Override
     public String calculate() {
         resetResult();
 

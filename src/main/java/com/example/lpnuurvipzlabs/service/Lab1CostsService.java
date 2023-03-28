@@ -6,6 +6,7 @@ public class Lab1CostsService extends Lab1Base {
 
     protected CostsValues mP1Cost, mP2Cost, mP3Cost;
 
+    @Override
     public String calculate() {
         resetResult();
 
@@ -41,6 +42,9 @@ public class Lab1CostsService extends Lab1Base {
         appendResultParamValue("K2", mCost[1][reqK2State]);
         appendResultParamValue("K3", mCost[2][reqK3State]);
         appendResultParamValue("K4", mCost[3][reqK4State]);
+        appendResultText(
+                String.format("SUM: %15.3f", mCost[0][reqK1State] + mCost[1][reqK2State] + mCost[2][reqK3State] + mCost[3][reqK4State])
+        );
 
         return getResult();
     }
