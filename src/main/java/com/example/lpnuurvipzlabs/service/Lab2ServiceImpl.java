@@ -16,36 +16,52 @@ import static java.lang.Math.*;
 
 public class Lab2ServiceImpl extends TextResultBase implements Lab2Service {
 
-    public ScrollPane scrollPane1, scrollPane2, scrollPane3;
+    public ScrollPane scrollPane1, scrollPane2;
     public Pane lineChartPane;
 
-    int n = 28;
-    double aMin = 1.16;
-    double aMax = 1.51;
-    double rMin = 0.15;
-    double rMax = 0.2;
-    double bMin = 36.0;
-    double bMax = 46.8;
-    double ciMin = 4.8;
-    double ciMax = 6.2;
-    int lMin = 3, lMax = 5;
-    double ci1Min = 7.0, ci2Min = 4.3, ci3Min = 3.7, ci4Min = 3.5, ci5Min = 2.9;
-    double ci1Max = 9.1, ci2Max = 5.6, ci3Max = 4.8, ci4Max = 4.6, ci5Max = 3.8;
-    double lambdaMin = 0.76, lambdaMax = 0.99;
-    double qMin = 1.03, qMax = 1.34;
+    private int n, lMin, lMax;
+    private double aMin, aMax, rMin, rMax, bMin, bMax, ciMin, ciMax;
+    private double ci1Min, ci2Min, ci3Min, ci4Min, ci5Min, ci1Max, ci2Max, ci3Max, ci4Max, ci5Max;
+    private double lambdaMin, lambdaMax, qMin, qMax;
 
     @Override
-    public String calculate() {
+    public String calculate(Map<String, Double> inputValuesMap) {
         resetResult();
 
-        calcTable1();
+        n = inputValuesMap.get("n").intValue();
+        lMin = inputValuesMap.get("lMin").intValue();
+        lMax = inputValuesMap.get("lMax").intValue();
+        aMin = inputValuesMap.get("aMin");
+        aMax = inputValuesMap.get("aMax");
+        rMin = inputValuesMap.get("rMin");
+        rMax = inputValuesMap.get("rMax");
+        bMin = inputValuesMap.get("bMin");
+        bMax = inputValuesMap.get("bMax");
+        ciMin = inputValuesMap.get("ciMin");
+        ciMax = inputValuesMap.get("ciMax");
+        ci1Min = inputValuesMap.get("ci1Min");
+        ci1Max = inputValuesMap.get("ci1Max");
+        ci2Min = inputValuesMap.get("ci2Min");
+        ci2Max = inputValuesMap.get("ci2Max");
+        ci3Min = inputValuesMap.get("ci3Min");
+        ci3Max = inputValuesMap.get("ci3Max");
+        ci4Min = inputValuesMap.get("ci4Min");
+        ci4Max = inputValuesMap.get("ci4Max");
+        ci5Min = inputValuesMap.get("ci5Min");
+        ci5Max = inputValuesMap.get("ci5Max");
+        lambdaMin = inputValuesMap.get("lambdaMin");
+        lambdaMax = inputValuesMap.get("lambdaMax");
+        qMin = inputValuesMap.get("qMin");
+        qMax = inputValuesMap.get("qMax");
+
+        calcTable1(inputValuesMap);
         appendResultNewline();
-        calcTable2();
+        calcTable2(inputValuesMap);
 
         return getResult();
     }
 
-    private void calcTable2() {
+    private void calcTable2(Map<String, Double> inputValuesMap) {
         List<TableResultItem> tableResult = new ArrayList<>();
 
         double a = randomMinMax(aMin, aMax);
@@ -72,7 +88,7 @@ public class Lab2ServiceImpl extends TextResultBase implements Lab2Service {
         }
         renderTable2(tableResult);
 
-        Pair cNPVMinMax = calcCNPVMinMax();
+        MinMax cNPVMinMax = calcCNPVMinMax();
 
         var cNPV = cNPVList.get(cNPVList.size()-1);
         var cNPVMin = cNPVMinMax.min;
@@ -133,18 +149,18 @@ public class Lab2ServiceImpl extends TextResultBase implements Lab2Service {
         resultList.forEach(item -> tableView.getItems().add(item));
     }
 
-    private void calcTable1() {
+    private void calcTable1(Map<String, Double> inputValuesMap) {
         List<TableResultItem> tableResult = new ArrayList<>();
         var stepsQuantity = 11; // excluded last
 
-        var c1 = new Pair(ci1Min, ci1Max);
-        var c2 = new Pair(ci2Min, ci2Max);
-        var c3 = new Pair(ci3Min, ci3Max);
+        var c1 = new MinMax(ci1Min, ci1Max);
+        var c2 = new MinMax(ci2Min, ci2Max);
+        var c3 = new MinMax(ci3Min, ci3Max);
 
         var alphaList = new ArrayList<>(IntStream.range(0, stepsQuantity).boxed().map((e) -> e / 10.0).toList());
         Collections.reverse(alphaList);
 
-        var npvList = new ArrayList<>(Collections.nCopies(stepsQuantity, new Pair(0, 0)));
+        var npvList = new ArrayList<>(Collections.nCopies(stepsQuantity, new MinMax(0, 0)));
 
         for (int j = 0; j < stepsQuantity; j++) {
             var i = j + 1;
@@ -156,12 +172,12 @@ public class Lab2ServiceImpl extends TextResultBase implements Lab2Service {
             var ci2 = getRangeMinMaxValue(i, stepsQuantity, c2.min, c2.max);
             var ci3 = getRangeMinMaxValue(i, stepsQuantity, c3.min, c3.max);
 
-            npvList.set(j, new Pair(
+            npvList.set(j, new MinMax(
                     calcNvp(r.min, b.min, a.min, ci.min, ci1.min, ci2.min, ci3.min),
                     calcNvp(r.max, b.max, a.max, ci.max, ci1.max, ci2.max, ci3.max)
                     ));
             tableResult.add(
-                    new Table1ResultItem(alphaList.get(j), r, b, new Pair(a.min * ci.min, a.max * ci.max), ci1, ci2, ci3, npvList.get(j))
+                    new Table1ResultItem(alphaList.get(j), r, b, new MinMax(a.min * ci.min, a.max * ci.max), ci1, ci2, ci3, npvList.get(j))
             );
         }
         renderTable1(tableResult);
@@ -274,57 +290,57 @@ public class Lab2ServiceImpl extends TextResultBase implements Lab2Service {
         return prevSum + calcRes;
     }
 
-    private Pair calcCNPVMinMax() {
+    private MinMax calcCNPVMinMax() {
 
-        Pair l = new Pair(lMin, lMax);
-        Pair a = new Pair(aMin, aMax);
-        var s1 = new ArrayList<>(Collections.nCopies(n, new Pair(0, 0)));
-        var s2 = new ArrayList<>(Collections.nCopies(n, new Pair(0, 0)));
-        var s3 = new ArrayList<>(Collections.nCopies(n, new Pair(0, 0)));
-        var cNPVArr = new ArrayList<>(Collections.nCopies(n, new Pair(0, 0)));
+        MinMax l = new MinMax(lMin, lMax);
+        MinMax a = new MinMax(aMin, aMax);
+        var s1 = new ArrayList<>(Collections.nCopies(n, new MinMax(0, 0)));
+        var s2 = new ArrayList<>(Collections.nCopies(n, new MinMax(0, 0)));
+        var s3 = new ArrayList<>(Collections.nCopies(n, new MinMax(0, 0)));
+        var cNPVArr = new ArrayList<>(Collections.nCopies(n, new MinMax(0, 0)));
 
         for (int j = 0; j < n; j++) {
             var i = j + 1;
-            Pair r = getRangeMinMaxValue(i, n, rMin, rMax);
-            Pair b = getRangeMinMaxValue(i, n, bMin, bMax);
-            Pair ci = getRangeMinMaxValue(i, n, ciMin, ciMax);
+            MinMax r = getRangeMinMaxValue(i, n, rMin, rMax);
+            MinMax b = getRangeMinMaxValue(i, n, bMin, bMax);
+            MinMax ci = getRangeMinMaxValue(i, n, ciMin, ciMax);
             var c = generateCPair(i, n);
 
-            s1.set(j, new Pair(
+            s1.set(j, new MinMax(
                     calcS1(i, s1.stream().map((e) -> e.min).toList(), b.min, a.min, ci.min, r.min),
                     calcS1(i, s1.stream().map((e) -> e.max).toList(), b.max, a.max, ci.max, r.max))
             );
 
-            s2.set(j, new Pair(
+            s2.set(j, new MinMax(
                     calcS2(i, (int)l.min, s2.stream().map((e) -> e.min).toList(), c.stream().map((e) -> e.min).toList(), r.min),
                     calcS2(i, (int)l.max, s2.stream().map((e) -> e.max).toList(), c.stream().map((e) -> e.max).toList(), r.max))
             );
 
-            s3.set(j, new Pair(
+            s3.set(j, new MinMax(
                     calcS3(i, (int)l.min, s3.stream().map((e) -> e.min).toList(), c.stream().map((e) -> e.min).toList(), r.min),
                     calcS3(i, (int)l.max, s3.stream().map((e) -> e.max).toList(), c.stream().map((e) -> e.max).toList(), r.max))
             );
 
-            cNPVArr.set(j, new Pair(
+            cNPVArr.set(j, new MinMax(
                     s1.get(j).min - s2.get(j).min - s3.get(j).min,
                     s1.get(j).max - s2.get(j).max - s3.get(j).max)
             );
         }
 
         if(cNPVArr.get(cNPVArr.size()-1).max > cNPVArr.get(cNPVArr.size()-1).min) {
-            return new Pair(cNPVArr.get(cNPVArr.size()-1).min, cNPVArr.get(cNPVArr.size()-1).max);
+            return new MinMax(cNPVArr.get(cNPVArr.size()-1).min, cNPVArr.get(cNPVArr.size()-1).max);
         } else {
-            return new Pair(cNPVArr.get(cNPVArr.size()-1).max, cNPVArr.get(cNPVArr.size()-1).min);
+            return new MinMax(cNPVArr.get(cNPVArr.size()-1).max, cNPVArr.get(cNPVArr.size()-1).min);
         }
     }
 
-    private Pair getRangeMinMaxValue(int i, int n, double min, double max) {
+    private MinMax getRangeMinMaxValue(int i, int n, double min, double max) {
         double avg = (max + min) / 2;
         double step = (max - avg) / n;
-        return new Pair(avg - (i - 1) * step, avg + (i - 1) * step);
+        return new MinMax(avg - (i - 1) * step, avg + (i - 1) * step);
     }
 
-    private List<Pair> generateCPair(int i, int n) {
+    private List<MinMax> generateCPair(int i, int n) {
         return new ArrayList<>(){{
             add(getRangeMinMaxValue(i, n, ci1Min, ci1Max));
             add(getRangeMinMaxValue(i, n, ci2Min, ci2Max));
@@ -350,7 +366,7 @@ public class Lab2ServiceImpl extends TextResultBase implements Lab2Service {
     }
 
     private double calcRL(double cNPV, double cNPVMin, double cNPVMax, double cNPVAvg) {
-        if (cNPV < cNPVAvg) {
+        if (cNPV > cNPVAvg) {
             return cNPVMin * cNPVMin / ((cNPVAvg - cNPVMin) * (cNPVMax - cNPVMin));
         }
 
@@ -359,13 +375,14 @@ public class Lab2ServiceImpl extends TextResultBase implements Lab2Service {
 
     private double calcRNPV(double cNPV, double cNPVMin, double cNPVMax, double cNPVAvg, double r, double alpha) {
         double rnpv;
+        var alphaExpression = (1 + (1 - alpha) / alpha * log(1 - alpha));
 
         if (cNPV < cNPVMin) {
             rnpv = 0;
         } else if (cNPV < cNPVAvg) {
-            rnpv = r * (1 + (1 - alpha) / alpha * log(1 - alpha));
-        } else if (cNPV <= cNPVMax) {
-            rnpv = 1 - (1 - r) * (1 + (1 - alpha) / alpha * log(1 - alpha));
+            rnpv = r * alphaExpression;
+        } else if (cNPV < cNPVMax) {
+            rnpv = 1 - (1 - r) * alphaExpression;
         } else {
             rnpv = 1;
         }
@@ -381,14 +398,14 @@ public class Lab2ServiceImpl extends TextResultBase implements Lab2Service {
         return 1;
     }
 
-    private record Pair(double min, double max) {
+    private record MinMax(double min, double max) {
         @Override
         public String toString() {
             return String.format("%.2f, %.2f", min, max);
         }
     }
 
-    record Point(double x, double y) {
+    private record Point(double x, double y) {
     }
 
     interface TableResultItem {
@@ -457,8 +474,8 @@ public class Lab2ServiceImpl extends TextResultBase implements Lab2Service {
 
     public static class Table1ResultItem implements TableResultItem {
         Double alpha;
-        Pair r, b, ac, c1, c2, c3, npv;
-        public Table1ResultItem(Double alpha, Pair r, Pair b, Pair ac, Pair c1, Pair c2, Pair c3, Pair npv) {
+        MinMax r, b, ac, c1, c2, c3, npv;
+        public Table1ResultItem(Double alpha, MinMax r, MinMax b, MinMax ac, MinMax c1, MinMax c2, MinMax c3, MinMax npv) {
             this.alpha = alpha;
             this.r = r;
             this.b = b;
@@ -473,31 +490,31 @@ public class Lab2ServiceImpl extends TextResultBase implements Lab2Service {
             return String.format("%.2f", alpha);
         }
 
-        public Pair getR() {
+        public MinMax getR() {
             return r;
         }
 
-        public Pair getB() {
+        public MinMax getB() {
             return b;
         }
 
-        public Pair getAc() {
+        public MinMax getAc() {
             return ac;
         }
 
-        public Pair getC1() {
+        public MinMax getC1() {
             return c1;
         }
 
-        public Pair getC2() {
+        public MinMax getC2() {
             return c2;
         }
 
-        public Pair getC3() {
+        public MinMax getC3() {
             return c3;
         }
 
-        public Pair getNpv() {
+        public MinMax getNpv() {
             return npv;
         }
 

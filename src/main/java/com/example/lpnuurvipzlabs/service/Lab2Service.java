@@ -1,5 +1,7 @@
 package com.example.lpnuurvipzlabs.service;
 
+import java.util.Map;
+
 public interface Lab2Service {
-    String calculate();
+    String calculate(Map<String, Double> inputValuesMap);
 }
