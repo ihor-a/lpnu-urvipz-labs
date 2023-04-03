@@ -2,6 +2,7 @@ package com.example.lpnuurvipzlabs;
 
 import com.example.lpnuurvipzlabs.service.*;
 import javafx.fxml.FXML;
+import javafx.scene.control.Alert;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
@@ -48,32 +49,59 @@ public class Lab2Controller {
 
     public void initialize() {
         resultArea.setEditable(false);
+//        inputFieldsMap = new HashMap<>() {{
+//            put(n, "28");
+//            put(aMin, "1.16");
+//            put(aMax, "1.51");
+//            put(rMin, "0.15");
+//            put(rMax, "0.2");
+//            put(bMin, "36.0");
+//            put(bMax, "46.8");
+//            put(ciMin, "4.8");
+//            put(ciMax, "6.2");
+//            put(lMin, "3");
+//            put(lMax, "5");
+//            put(ci1Min, "7.0");
+//            put(ci1Max, "9.1");
+//            put(ci2Min, "4.3");
+//            put(ci2Max, "5.6");
+//            put(ci3Min, "3.7");
+//            put(ci3Max, "4.8");
+//            put(ci4Min, "3.5");
+//            put(ci4Max, "4.6");
+//            put(ci5Min, "2.9");
+//            put(ci5Max, "3.8");
+//            put(lambdaMin, "0.76");
+//            put(lambdaMax, "0.99");
+//            put(qMin, "1.03");
+//            put(qMax, "1.34");
+//        }};
         inputFieldsMap = new HashMap<>() {{
-            put(n, "28");
-            put(aMin, "1.16");
-            put(aMax, "1.51");
-            put(rMin, "0.15");
-            put(rMax, "0.2");
-            put(bMin, "36.0");
-            put(bMax, "46.8");
-            put(ciMin, "4.8");
-            put(ciMax, "6.2");
+            put(n, "11");
+            put(aMin, "0.91");
+            put(aMax, "1.18");
+            put(rMin, "0.14");
+            put(rMax, "0.18");
+            put(bMin, "38.7");
+            put(bMax, "50.3");
+            put(ciMin, "2.8");
+            put(ciMax, "3.6");
             put(lMin, "3");
             put(lMax, "5");
-            put(ci1Min, "7.0");
-            put(ci1Max, "9.1");
-            put(ci2Min, "4.3");
-            put(ci2Max, "5.6");
-            put(ci3Min, "3.7");
-            put(ci3Max, "4.8");
-            put(ci4Min, "3.5");
-            put(ci4Max, "4.6");
-            put(ci5Min, "2.9");
-            put(ci5Max, "3.8");
-            put(lambdaMin, "0.76");
-            put(lambdaMax, "0.99");
-            put(qMin, "1.03");
-            put(qMax, "1.34");
+            put(ci1Min, "5.5");
+            put(ci1Max, "7.2");
+            put(ci2Min, "4.8");
+            put(ci2Max, "6.2");
+            put(ci3Min, "3.8");
+            put(ci3Max, "4.9");
+            put(ci4Min, "3.6");
+            put(ci4Max, "4.7");
+            put(ci5Min, "3.3");
+            put(ci5Max, "4.3");
+            put(lambdaMin, "0.86");
+            put(lambdaMax, "1.12");
+            put(qMin, "0.96");
+            put(qMax, "1.25");
         }};
 
         inputFieldsMap.forEach((textField, value) -> {
@@ -108,8 +136,15 @@ public class Lab2Controller {
                 .stream()
                 .collect(Collectors.toMap(TextField::getId, this::getNumericFieldValue));
 
-        resultArea.setText(
-                lab2Service.calculate(inputValuesMap)
-        );
+        try {
+            resultArea.setText(
+                    lab2Service.calculate(inputValuesMap)
+            );
+        } catch (RuntimeException e) {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Exception");
+            alert.setContentText(e.getMessage());
+            alert.show();
+        }
     }
 }
