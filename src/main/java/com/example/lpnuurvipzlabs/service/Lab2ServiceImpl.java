@@ -267,11 +267,11 @@ public class Lab2ServiceImpl extends TextResultBase implements Lab2Service {
 
     private double calcS2(int i, int l, List<Double> s2List, List<Double> cFrom1To5List, double r) {
         var prevSum = i == 1 ? 0 : s2List.get(i - 2);
-        var filteredC = cFrom1To5List.subList(0, min(l + 1, cFrom1To5List.size()));
+        var usedCfrom1To5List = cFrom1To5List.subList(0, min(l + 1, cFrom1To5List.size()));
         return prevSum +
-                (filteredC.size() == 0
+                (usedCfrom1To5List.size() == 0
                         ? 0
-                        : filteredC.stream().reduce(0.0, Double::sum) / pow(1 + r, i)
+                        : usedCfrom1To5List.stream().reduce(0.0, Double::sum) / pow(1 + r, i)
                 );
     }
 
@@ -279,10 +279,10 @@ public class Lab2ServiceImpl extends TextResultBase implements Lab2Service {
         var prevSum = i == 1 ? 0 : s3.get(i - 2);
         var lambda = randomMinMax(lambdaMin, lambdaMax);
         var q = randomMinMax(qMin, qMax);
-        var filteredC = cFrom1To5List.subList(0, min(l + 1, cFrom1To5List.size()));
-        var calcResSum = filteredC.size() == 0
+        var usedCfrom1To5List = cFrom1To5List.subList(0, min(l + 1, cFrom1To5List.size()));
+        var calcResSum = usedCfrom1To5List.size() == 0
                 ? 0.0
-                : filteredC.stream().reduce(0.0, (value, element) -> {
+                : usedCfrom1To5List.stream().reduce(0.0, (value, element) -> {
             var powValue = pow(Math.E, -lambda * q * element);
             return value + powValue;
         });
