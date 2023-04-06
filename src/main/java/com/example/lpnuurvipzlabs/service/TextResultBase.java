@@ -22,6 +22,10 @@ abstract class TextResultBase {
         appendResultText(Arrays.toString(value));
     }
 
+    protected void appendResultValue(String description, double value) {
+        appendResultText(String.format("%s:\t%f", description, value));
+    }
+
     protected void appendResultNewline() {
         appendResultText("");
     }
