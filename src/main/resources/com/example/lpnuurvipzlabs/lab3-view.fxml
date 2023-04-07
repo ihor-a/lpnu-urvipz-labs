@@ -7,16 +7,17 @@
 <?import javafx.scene.layout.Pane?>
 <?import javafx.scene.layout.VBox?>
 
-<VBox alignment="CENTER" prefHeight="959.0" prefWidth="1182.0" spacing="20.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.lpnuurvipzlabs.Lab3Controller">
+<VBox alignment="CENTER" prefHeight="975.0" prefWidth="1201.0" spacing="20.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.lpnuurvipzlabs.Lab3Controller">
     <padding>
         <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
     </padding>
-   <Pane prefHeight="945.0" prefWidth="1092.0">
+   <Pane prefHeight="968.0" prefWidth="1161.0">
       <children>
-          <Button layoutX="725.0" layoutY="681.0" onAction="#onCalculateButtonClick" prefHeight="26.0" prefWidth="77.0" text="Calculate" />
-         <TextArea fx:id="resultArea" layoutX="605.0" layoutY="-7.0" prefHeight="662.0" prefWidth="537.0" />
+          <Button layoutX="847.0" layoutY="886.0" onAction="#onCalculateButtonClick" prefHeight="26.0" prefWidth="77.0" text="Calculate" />
+         <TextArea fx:id="resultArea" layoutX="605.0" layoutY="-7.0" prefHeight="865.0" prefWidth="560.0" />
          <ScrollPane fx:id="scrollPane2" layoutY="392.0" prefHeight="373.0" prefWidth="606.0" />
          <ScrollPane fx:id="scrollPane1" layoutY="-7.0" prefHeight="400.0" prefWidth="606.0" />
+         <ScrollPane fx:id="scrollPane3" layoutY="764.0" prefHeight="173.0" prefWidth="606.0" />
       </children>
    </Pane>
 </VBox>

@@ -1,5 +1,6 @@
 package com.example.lpnuurvipzlabs.service;
 
+import java.text.DecimalFormat;
 import java.util.Arrays;
 
 abstract class TextResultBase {
@@ -17,13 +18,15 @@ abstract class TextResultBase {
         }
     }
 
-    protected void appendResultValue(String description, double[] value) {
-        appendResultText(description);
-        appendResultText(Arrays.toString(value));
+    protected void appendResultValue(String description, Double[] value) {
+        var displayArr = Arrays.stream(value).map(val -> new DecimalFormat("#.###").format(val)).toArray();
+        appendResultText(String.format("%s:", description));
+        appendResultText(Arrays.toString(displayArr));
     }
 
-    protected void appendResultValue(String description, double value) {
-        appendResultText(String.format("%s:\t%f", description, value));
+    protected void appendResultValue(String description, double value, int indentLen) {
+        String indent = indentLen > 0 ? " ".repeat(indentLen - description.length()) : " ";
+        appendResultText(String.format("%s:%s%f", description, indent, value));
     }
 
     protected void appendResultNewline() {

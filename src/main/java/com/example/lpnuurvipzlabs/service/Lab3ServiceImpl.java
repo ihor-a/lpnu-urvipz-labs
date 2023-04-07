@@ -11,12 +11,11 @@ import javafx.scene.control.cell.TextFieldTableCell;
 import java.text.DecimalFormat;
 import java.util.*;
 
-import static java.lang.Math.abs;
-import static java.lang.Math.random;
+import static java.lang.Math.*;
 
 public class Lab3ServiceImpl extends TextResultBase implements Lab3Service {
 
-    private ScrollPane scrollPane1, scrollPane2;
+    private final ScrollPane scrollPane1, scrollPane2, scrollPane3;
     private final TableView<ResourceItem> tsTableView = new TableView<>();
     private final TableView<ResourceItem> ssTableView = new TableView<>();
     private final TableView<ResourceItem> msTableView = new TableView<>();
@@ -25,44 +24,212 @@ public class Lab3ServiceImpl extends TextResultBase implements Lab3Service {
     private final ObservableList<ResourceItem> msObservableArrayList = FXCollections.observableArrayList();
     private TsResource tsResource;
     private SsResource ssResource;
+    private MsResource msResource;
 
-    public Lab3ServiceImpl(ScrollPane scrollPane1, ScrollPane scrollPane2) {
+    private final int[][] incidenceTsSsMatrix = new int[][]{
+            {1, 0, 0, 1, 1, 1, 0},
+            {0, 1, 0, 1, 0, 0, 1},
+            {0, 0, 1, 0, 1, 1, 0},
+            {1, 0, 1, 1, 0, 0, 1},
+            {0, 1, 0, 1, 1, 1, 0},
+            {0, 0, 1, 1, 0, 0, 1},
+            {0, 1, 1, 0, 1, 1, 1},
+            {1, 0, 1, 1, 0, 1, 0},
+            {0, 1, 0, 1, 1, 0, 1},
+            {1, 0, 1, 1, 0, 1, 0},
+            {0, 0, 1, 0, 1, 0, 1},
+            {0, 0, 0, 1, 0, 1, 0},
+            {0, 1, 1, 0, 1, 0, 1},
+            {1, 0, 0, 1, 0, 1, 0},
+            {0, 1, 1, 0, 1, 0, 1},
+    };
+    private final int[][] incidenceMsSsMatrix = new int[][]{
+            {1, 0, 1},
+            {1, 1, 0},
+            {0, 0, 1},
+            {1, 1, 0},
+            {0, 0, 1},
+            {1, 1, 0},
+            {1, 0, 1},
+            {1, 1, 0},
+            {0, 1, 1},
+            {0, 0, 1},
+            {1, 1, 0},
+            {1, 0, 1},
+            {0, 1, 0},
+            {1, 1, 0},
+            {1, 0, 1},
+    };
+
+    public Lab3ServiceImpl(ScrollPane scrollPane1, ScrollPane scrollPane2, ScrollPane scrollPane3) {
         this.scrollPane1 = scrollPane1;
         this.scrollPane2 = scrollPane2;
+        this.scrollPane3 = scrollPane3;
 
         tsResource = new TsResource(tsObservableArrayList, tsTableView);
         ssResource = new SsResource(ssObservableArrayList, ssTableView);
+        msResource = new MsResource(msObservableArrayList, msTableView);
         initTables();
     }
 
     private void initTables() {
         initTable(tsTableView, scrollPane1, tsObservableArrayList);
         initTable(ssTableView, scrollPane2, ssObservableArrayList);
+        initTable(msTableView, scrollPane3, msObservableArrayList);
     }
 
     @Override
     public String calculate() {
         initTables();
         resetResult();
+        appendResultText("Calculation result");
+        appendResultNewline();
 
         tsResource.calculate();
         ssResource.calculate();
+        msResource.calculate();
+
+        var zeqMatrix = buildZeqMatrix();
+        var zusMatrix = buildZusMatrix();
+        var heqMatrix = buildHeqMatrix();
+        var husMatrix = buildHusMatrix();
+
+        var rTsSsMatrix = buildRMatrix(zeqMatrix, zusMatrix, incidenceTsSsMatrix);
+        var rMsSsMatrix = buildRMatrix(heqMatrix, husMatrix, incidenceMsSsMatrix);
+
+        dumpMatrix(rTsSsMatrix, "R-TS-SS Matrix");
+        dumpMatrix(rMsSsMatrix, "R-MS-SS Matrix");
+
+        dumpMatrix(multiplyMatrices(rTsSsMatrix, transposeMatrix(new Double[][]{tsResource.pVector})), "R-TS-SS x P-TS");
+
+        appendResultValue("Euclidean norm of R-TS-SS Matrix", calcEuclideanNorm(rTsSsMatrix), -1);
 
         tsResource.printLog();
+        ssResource.printLog();
+        msResource.printLog();
 
-        for (var item: tsObservableArrayList) {
-            appendResultText(item.toString());
-        }
+//        for (var item: tsObservableArrayList) {
+//            appendResultText(item.toString());
+//        }
         return getResult();
+    }
+
+    private void dumpMatrix(Double[][] matrix, String title) {
+        appendResultNewline();
+        appendResultText(title+":");
+        var format = new DecimalFormat("#.###");
+        for (Double[] row : matrix) {
+            String line = "[";
+            for (Double val : row) {
+                line += format.format(val) +",\t";
+//                line += format.format(val).indent(87).stripTrailing();
+            }
+            line = line.stripTrailing();
+            line = line.substring(0, line.length()-1) +"]";
+            appendResultText(line);
+        }
+        appendResultNewline();
+    }
+
+    private Double[][] buildZeqMatrix() {
+        return buildAnyEqMatrix(tsResource, ssResource);
+    }
+    private Double[][] buildZusMatrix() {
+        return buildAnyUsMatrix(tsResource, ssResource);
+    }
+    private Double[][] buildHeqMatrix() {
+        return buildAnyEqMatrix(msResource, ssResource);
+    }
+    private Double[][] buildHusMatrix() {
+        return buildAnyUsMatrix(msResource, ssResource);
+    }
+
+    private Double[][] buildAnyEqMatrix(BaseResource wResource, BaseResource hResource) {
+        var height = hResource.pVector.length;
+        var width = wResource.pVector.length;
+        Double[][] result = new Double[height][width];
+
+        for (int h=0; h < height; h++) {
+            for (int w=0; w < width; w++) {
+                result[h][w] = hResource.getAnyEqMatrixVal(h) * wResource.getAnyEqMatrixVal(w);
+            }
+        }
+        return result;
+    }
+    private Double[][] buildAnyUsMatrix(BaseResource wResource, BaseResource hResource) {
+        var height = hResource.pVector.length;
+        var width = wResource.pVector.length;
+        Double[][] result = new Double[height][width];
+
+        for (int h=0; h < height; h++) {
+            for (int w=0; w < width; w++) {
+                result[h][w] = hResource.getAnyUsMatrixVal(h) * wResource.getAnyUsMatrixVal(w);
+            }
+        }
+        return result;
+    }
+
+    private Double[][] buildRMatrix(Double[][] eqMatrix, Double[][] usMatrix, int[][] incidenceMatrix) {
+        var height = incidenceMatrix.length;
+        var width = incidenceMatrix[0].length;
+        Double[][] result = new Double[height][width];
+
+        for (int h=0; h < height; h++) {
+            for (int w=0; w < width; w++) {
+                result[h][w] = incidenceMatrix[h][w] == 0 ? 0 : eqMatrix[h][w] / usMatrix[h][w];
+            }
+        }
+        return result;
+    }
+
+    private Double calcEuclideanNorm(Double[][] matrix) {
+        double result = 0.0;
+
+        for (Double[] row : matrix) {
+            result += Arrays.stream(row).map(val -> val * val).reduce(0.0, Double::sum);
+        }
+        return sqrt(result);
+    }
+
+    private Double[][] multiplyMatrices(Double[][] firstMatrix, Double[][] secondMatrix) {
+        Double[][] result = new Double[firstMatrix.length][secondMatrix[0].length];
+
+        for (int row = 0; row < result.length; row++) {
+            for (int col = 0; col < result[row].length; col++) {
+                result[row][col] = multiplyMatricesCell(firstMatrix, secondMatrix, row, col);
+            }
+        }
+
+        return result;
+    }
+    private Double multiplyMatricesCell(Double[][] firstMatrix, Double[][] secondMatrix, int row, int col) {
+        double cell = 0;
+        for (int i = 0; i < secondMatrix.length; i++) {
+            cell += firstMatrix[row][i] * secondMatrix[i][col];
+        }
+        return cell;
+    }
+
+    private Double[][] transposeMatrix(Double[][] input) {
+        var result = new Double[input[0].length][input.length];
+
+        for (int i = 0; i < input.length; i++) {
+            for (int j = 0; j < input[0].length; j++) {
+                result[j][i] = input[i][j];
+            }
+        }
+        return result;
     }
 
 
     class TsResource extends BaseResource {
-        double indPPC, indPNET, indPP;
+        double pPCIndex, pNETIndex, pPIndex;
+        
 
         TsResource(ObservableList<ResourceItem> observableListExt, TableView<ResourceItem> tableView) {
             this.observableList = observableListExt;
             this.tableView = tableView;
+            pVector = new Double[7];
 
             int number = 1;
             observableList.add(new ResourceItem(number++,"Тактова частота процесора","fTp","ГГц",2.0));
@@ -80,6 +247,8 @@ public class Lab3ServiceImpl extends TextResultBase implements Lab3Service {
             observableList.add(new ResourceItem(number++,"Швидкість друку (сканування)","VPR","стор./хв.",12.0));
             observableList.add(new ResourceItem(number++,"Швидкість обміну з ПК","RE","Мбіт/с",25.0));
             observableList.add(new ResourceItem(number++,"Об'єм ОЗП","VPRAM","Гбайт",0.128));
+
+            matrixSignList = new ArrayList<>(Arrays.asList("fTp","fTRAM","SHDD","NPT","NPR","VPR","RE"));
         }
 
         void calcMinNom() {
@@ -146,31 +315,43 @@ public class Lab3ServiceImpl extends TextResultBase implements Lab3Service {
 
         void calculate() {
             calcMinNom();
+            //P-PC: 0.648720
+            //P-NET: 0.226042
+            //P-PP: 0.659036
+            pVector[0] = 1d/3 * indexPExpr("fTp") * indexPExpr("NCp") * indexPExpr("Cp");
+            pVector[1] = 1d/3 * indexPExpr("fTRAM") * indexPExpr("VRAM") * indexPExpr("Cp");
+            pVector[2] = 1d/3 * indexPExpr("SHDD") * indexPExpr("VHDD") * indexPExpr("Cp");
 
-            indPPC = 1.0/3 * (indPExpr("fTp")*indPExpr("NCp") + indPExpr("fTRAM")*indPExpr("VRAM")
-                    + indPExpr("SHDD")*indPExpr("VHDD"))
-                    * indPExpr("Cp");
-            indPNET = 0.5 * (indPExpr("NPT") + indPExpr("NPR")) * indPExpr("VN") * indPExpr("CNET");
-            indPP = 0.5 * (indPExpr("VPR") + indPExpr("RE")) * indPExpr("VRAM") * indPExpr("RP");
+            pVector[3] = 0.5 * indexPExpr("NPT") * indexPExpr("VN") * indexPExpr("CNET");
+            pVector[4] = 0.5 * indexPExpr("NPR") * indexPExpr("VN") * indexPExpr("CNET");
 
+            pVector[5] = 0.5 * indexPExpr("VPR") * indexPExpr("VRAM") * indexPExpr("RP");
+            pVector[6] = 0.5 * indexPExpr("RE") * indexPExpr("VRAM") * indexPExpr("RP");
+
+            pPCIndex = pVector[0] + pVector[1] + pVector[2];
+            pNETIndex = pVector[3] + pVector[4];
+            pPIndex = pVector[5] + pVector[6];
         }
 
-        double indPsumSquare() {
-            return indPPC*indPPC + indPNET*indPNET + indPP*indPP;
+        double sumSquarePIndices() {
+            return pPCIndex * pPCIndex + pNETIndex * pNETIndex + pPIndex * pPIndex;
         }
 
         void printLog() {
-            appendResultValue("P-PC", indPPC);
-            appendResultValue("P-NET", indPNET);
-            appendResultValue("P-PP", indPP);
+            appendResultValue("P-PC Index", pPCIndex, 15);
+            appendResultValue("P-NET Index", pNETIndex, 15);
+            appendResultValue("P-PP Index", pPIndex, 15);
+            appendResultValue("P-TS Vector", pVector);
+            appendResultNewline();
         }
     }
     class SsResource extends BaseResource {
-        double indPPC, indPNET, indPP;
+        double pOSIndex, pDBIndex, pEIndex, pRGIndex;
 
         SsResource(ObservableList<ResourceItem> observableListExt, TableView<ResourceItem> tableView) {
             this.observableList = observableListExt;
             this.tableView = tableView;
+            pVector = new Double[15];
 
             int number = 1;
             observableList.add(new ResourceItem(number++,"Розрядність ОС","COS","біт",32.0));
@@ -195,6 +376,8 @@ public class Lab3ServiceImpl extends TextResultBase implements Lab3Service {
             observableList.add(new ResourceItem(number++,"Кількість графічних форматів","NRGGF","шт.",3.0));
             observableList.add(new ResourceItem(number++,"Кількість форматів баз даних","NRGDB","шт.",2.0));
             observableList.add(new ResourceItem(number++,"Тривалість генерування звіту","TRG","кБайт/с",100.0));
+
+            matrixSignList = new ArrayList<>(Arrays.asList("NCOS", "NTOS", "NUOS", "VDBT", "VDCR", "VDBDT", "TDB", "NEF", "NED", "VED", "NRGC", "NRGF", "NRGGF", "NRGDB", "VRGIN"));
         }
 
         void calcMinNom() {
@@ -281,16 +464,115 @@ public class Lab3ServiceImpl extends TextResultBase implements Lab3Service {
 
         void calculate() {
             calcMinNom();
+
+            pVector[0] = 1d/3 * indexPExpr("NCOS") * indexPExpr("COS") * indexPExpr("TOS");
+            pVector[1] = 1d/3 * indexPExpr("NTOS") * indexPExpr("COS") * indexPExpr("TOS");
+            pVector[2] = 1d/3 * indexPExpr("NUOS") * indexPExpr("COS") * indexPExpr("TOS");
+
+            pVector[3] = 1d/4 * indexPExpr("VDBT") * indexPExpr("TDB") * indexPExpr("CDB");
+            pVector[4] = 1d/4 * indexPExpr("VDCR") * indexPExpr("TDB") * indexPExpr("CDB");
+            pVector[5] = 1d/4 * indexPExpr("VDBDT") * indexPExpr("TDB") * indexPExpr("CDB");
+            pVector[6] = 1d/4 * indexPExpr("VDB") * indexPExpr("TDB") * indexPExpr("CDB");
+
+            pVector[7] = 1d/3 * indexPExpr("NEF") * indexPExpr("TOS") * indexPExpr("CE");
+            pVector[8] = 1d/3 * indexPExpr("NED") * indexPExpr("TOS") * indexPExpr("CE");
+            pVector[9] = 1d/3 * indexPExpr("VED") * indexPExpr("TOS") * indexPExpr("CE");
+
+            pVector[10] = 1d/5 * indexPExpr("NRGC") * indexPExpr("TRG") * indexPExpr("CRG");
+            pVector[11] = 1d/5 * indexPExpr("NRGF") * indexPExpr("TRG") * indexPExpr("CRG");
+            pVector[12] = 1d/5 * indexPExpr("NRGGF") * indexPExpr("TRG") * indexPExpr("CRG");
+            pVector[13] = 1d/5 * indexPExpr("NRGDB") * indexPExpr("TRG") * indexPExpr("CRG");
+            pVector[14] = 1d/5 * indexPExpr("VRGIN") * indexPExpr("TRG") * indexPExpr("CRG");
+
+            pOSIndex = pVector[0] + pVector[1] + pVector[2];
+            pDBIndex = pVector[3] + pVector[4] + pVector[5] + pVector[6];
+            pEIndex = pVector[7] + pVector[8] + pVector[9];
+            pRGIndex = pVector[10] + pVector[11] + pVector[12] + pVector[13] + pVector[14];
         }
 
-        double indPsumSquare() {
-            return indPPC*indPPC + indPNET*indPNET + indPP*indPP;
+        double sumSquarePIndices() {
+            return pOSIndex * pOSIndex + pDBIndex * pDBIndex + pEIndex * pEIndex + pRGIndex * pRGIndex;
         }
 
         void printLog() {
-            appendResultValue("P-PC", indPPC);
-            appendResultValue("P-NET", indPNET);
-            appendResultValue("P-PP", indPP);
+            appendResultValue("P-OS Index", pOSIndex, 15);
+            appendResultValue("P-DB Index", pDBIndex, 15);
+            appendResultValue("P-E Index", pEIndex, 15);
+            appendResultValue("P-RG Index", pRGIndex, 15);
+            appendResultValue("P-SS Vector", pVector);
+            appendResultNewline();
+        }
+    }
+
+    class MsResource extends BaseResource {
+        double pMIndex;
+
+        MsResource(ObservableList<ResourceItem> observableListExt, TableView<ResourceItem> tableView) {
+            this.observableList = observableListExt;
+            this.tableView = tableView;
+            pVector = new Double[3];
+
+            int number = 1;
+            observableList.add(new ResourceItem(number++,"Кількість методів розв'язання задачі","NNM","шт.",3d));//
+            observableList.add(new ResourceItem(number++,"Точність виконання розрахунків","PNM","%",1d));//
+            observableList.add(new ResourceItem(number++,"Тривалість розв'язання задачі","TNM","с",20d));//
+            observableList.add(new ResourceItem(number++,"Тривалість підготовки вхідних даних","TPD","хв",5d));
+            observableList.add(new ResourceItem(number++,"Тривалість поточної інтерпретації даних","TPID","хв",3d));
+            observableList.add(new ResourceItem(number++,"Тривалість аналізу результатів розрахунку","TARR","хв",15d));
+
+            matrixSignList = new ArrayList<>(Arrays.asList("TPD","TPID","TARR"));
+        }
+
+        void calcMinNom() {
+            for(var item: observableList) {
+                switch (item.sign) {
+                    case "NNM":
+                        item.min = 1.0;
+                        defRandomNomInt(item);
+                        break;
+                    case "PNM":
+                        item.min = 0.1;
+                        defRandomNomDouble(item);
+                        break;
+                    case "TNM":
+                        item.min = 5d;
+                        defRandomNomDouble(item);
+                        break;
+                    case "TPD":
+                        item.min = 1.0;
+                        defRandomNomDouble(item);
+                        break;
+                    case "TPID":
+                        item.min = 0.5;
+                        defRandomNomDouble(item);
+                        break;
+                    case "TARR":
+                        item.min = 5.0;
+                        defRandomNomDouble(item);
+                        break;
+                }
+                itemMap.put(item.sign, item);
+                tableView.refresh();
+            }
+        }
+
+        void calculate() {
+            calcMinNom();
+            pVector[0] = 1d/3 * indexPExpr("TPD") * indexPExpr("NNM") * indexPExpr("PNM") * indexPExpr("TNM");
+            pVector[1] = 1d/3 * indexPExpr("TPID") * indexPExpr("NNM") * indexPExpr("PNM") * indexPExpr("TNM");
+            pVector[2] = 1d/3 * indexPExpr("TARR") * indexPExpr("NNM") * indexPExpr("PNM") * indexPExpr("TNM");
+
+            pMIndex = pVector[0] + pVector[1] + pVector[2];
+        }
+
+        double sumSquarePIndices() {
+            return pMIndex * pMIndex;
+        }
+
+        void printLog() {
+            appendResultValue("P-M Index", pMIndex, 15);
+            appendResultValue("P-MS Vector", pVector);
+            appendResultNewline();
         }
     }
 
@@ -298,8 +580,18 @@ public class Lab3ServiceImpl extends TextResultBase implements Lab3Service {
         protected ObservableList<ResourceItem> observableList;
         protected TableView<ResourceItem> tableView;
         protected Map<String, ResourceItem> itemMap = new HashMap<>();
+        protected List<String> matrixSignList;
+        Double[] pVector;
 
-        protected Double indPExpr(String sign) {
+        public Double getAnyEqMatrixVal(int index) {
+            return itemMap.get(matrixSignList.get(index)).max;
+        }
+
+        public Double getAnyUsMatrixVal(int index) {
+            return itemMap.get(matrixSignList.get(index)).nom;
+        }
+
+        protected Double indexPExpr(String sign) {
             return itemMap.get(sign).nom / itemMap.get(sign).max;
         }
 

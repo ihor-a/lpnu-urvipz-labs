@@ -13,6 +13,7 @@ import java.util.ResourceBundle;
 public class Lab3Controller implements Initializable {
     @FXML private ScrollPane scrollPane1;
     @FXML private ScrollPane scrollPane2;
+    @FXML private ScrollPane scrollPane3;
     @FXML private TextArea resultArea;
 
     private Lab3ServiceImpl lab3Service;
@@ -21,7 +22,7 @@ public class Lab3Controller implements Initializable {
     public void initialize(URL location, ResourceBundle resources) {
         resultArea.setEditable(false);
 
-        lab3Service = new Lab3ServiceImpl(scrollPane1, scrollPane2);
+        lab3Service = new Lab3ServiceImpl(scrollPane1, scrollPane2, scrollPane3);
     }
 
     @FXML
