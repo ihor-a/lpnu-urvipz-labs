@@ -21,8 +21,9 @@ public class Lab3Controller implements Initializable {
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         resultArea.setEditable(false);
+        resultArea.setStyle("-fx-font-family: 'monospaced';");
 
-        lab3Service = new Lab3ServiceImpl(scrollPane1, scrollPane2, scrollPane3);
+        lab3Service = new Lab3ServiceImpl(resultArea, scrollPane1, scrollPane2, scrollPane3);
     }
 
     @FXML

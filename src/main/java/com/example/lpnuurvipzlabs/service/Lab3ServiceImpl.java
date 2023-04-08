@@ -5,6 +5,7 @@ import javafx.collections.ObservableList;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.control.cell.TextFieldTableCell;
 
@@ -15,6 +16,7 @@ import static java.lang.Math.*;
 
 public class Lab3ServiceImpl extends TextResultBase implements Lab3Service {
 
+    private final TextArea resultArea;
     private final ScrollPane scrollPane1, scrollPane2, scrollPane3;
     private final TableView<ResourceItem> tsTableView = new TableView<>();
     private final TableView<ResourceItem> ssTableView = new TableView<>();
@@ -61,7 +63,8 @@ public class Lab3ServiceImpl extends TextResultBase implements Lab3Service {
             {1, 0, 1},
     };
 
-    public Lab3ServiceImpl(ScrollPane scrollPane1, ScrollPane scrollPane2, ScrollPane scrollPane3) {
+    public Lab3ServiceImpl(TextArea resultArea, ScrollPane scrollPane1, ScrollPane scrollPane2, ScrollPane scrollPane3) {
+        this.resultArea = resultArea;
         this.scrollPane1 = scrollPane1;
         this.scrollPane2 = scrollPane2;
         this.scrollPane3 = scrollPane3;
@@ -93,20 +96,40 @@ public class Lab3ServiceImpl extends TextResultBase implements Lab3Service {
         var zusMatrix = buildZusMatrix();
         var heqMatrix = buildHeqMatrix();
         var husMatrix = buildHusMatrix();
-
         var rTsSsMatrix = buildRMatrix(zeqMatrix, zusMatrix, incidenceTsSsMatrix);
         var rMsSsMatrix = buildRMatrix(heqMatrix, husMatrix, incidenceMsSsMatrix);
 
-        dumpMatrix(rTsSsMatrix, "R-TS-SS Matrix");
-        dumpMatrix(rMsSsMatrix, "R-MS-SS Matrix");
+        var mulRTsSsPTs = multiplyMatrices(rTsSsMatrix, transposeMatrix(new Double[][]{tsResource.pVector}));
+        var mulRMsSsPMs = multiplyMatrices(rMsSsMatrix, transposeMatrix(new Double[][]{msResource.pVector}));
 
-        dumpMatrix(multiplyMatrices(rTsSsMatrix, transposeMatrix(new Double[][]{tsResource.pVector})), "R-TS-SS x P-TS");
+        Double[][] mulOfRProducts = new Double[mulRTsSsPTs.length][mulRTsSsPTs[0].length];
+        for (int i = 0; i<mulRTsSsPTs.length; i++) {
+            mulOfRProducts[i][0] = mulRTsSsPTs[i][0] * mulRMsSsPMs[i][0];
+        }
+        var q = multiplyMatrices(transposeMatrix(mulOfRProducts), transposeMatrix(new Double[][]{ssResource.pVector}));
 
+        appendResultValue("Q", q[0][0], 3);
+        appendResultValue( "P",
+                sqrt(tsResource.sumSquarePIndices() + ssResource.sumSquarePIndices() + msResource.sumSquarePIndices()),
+                3
+        );
         appendResultValue("Euclidean norm of R-TS-SS Matrix", calcEuclideanNorm(rTsSsMatrix), -1);
+        appendResultValue("Euclidean norm of R-MS-SS Matrix", calcEuclideanNorm(rMsSsMatrix), -1);
+        appendResultNewline();
 
+        appendResultText("======== Calculation Log ========");
         tsResource.printLog();
         ssResource.printLog();
         msResource.printLog();
+        dumpMatrix(zeqMatrix, "Zeq Matrix");
+        dumpMatrix(zusMatrix, "Zus Matrix");
+        dumpMatrix(heqMatrix, "Heq Matrix");
+        dumpMatrix(husMatrix, "Hus Matrix");
+        dumpMatrix(rTsSsMatrix, "R-TS-SS Matrix");
+        dumpMatrix(rMsSsMatrix, "R-MS-SS Matrix");
+        dumpMatrix(mulRTsSsPTs, "R-TS-SS x P-TS");
+        dumpMatrix(mulRMsSsPMs, "R-MS-SS x P-MS");
+        dumpMatrix(transposeMatrix(mulOfRProducts), "Multiplication of R Matrices Transposed");
 
 //        for (var item: tsObservableArrayList) {
 //            appendResultText(item.toString());
@@ -119,13 +142,13 @@ public class Lab3ServiceImpl extends TextResultBase implements Lab3Service {
         appendResultText(title+":");
         var format = new DecimalFormat("#.###");
         for (Double[] row : matrix) {
-            String line = "[";
+            String line = "";
             for (Double val : row) {
-                line += format.format(val) +",\t";
+                line += format.format(val) +"\t";
 //                line += format.format(val).indent(87).stripTrailing();
             }
             line = line.stripTrailing();
-            line = line.substring(0, line.length()-1) +"]";
+            //line = line.substring(0, line.length()-1) +"]";
             appendResultText(line);
         }
         appendResultNewline();
@@ -255,58 +278,43 @@ public class Lab3ServiceImpl extends TextResultBase implements Lab3Service {
             for(var item: observableList) {
                 switch (item.sign) {
                     case "fTp":
+                    case "fTRAM":
+                    case "VRAM":
+                    case "VHDD":
+                        item.min = item.max * 0.75;
+                        defRandomNomDouble(item);
+                        break;
                     case "NCp":
+                        item.min = 2d;
+                        defRandomNomInt(item);
+                        break;
                     case "Cp":
-                        item.min = item.max;
+                        item.min = 32d;
                         item.nom = item.max;
                         break;
-                    case "fTRAM":
-                        item.min = item.max * 0.75;
-                        item.nom = 0.33; //std
-                        break;
-                    case "VRAM":
-                        item.min = 2.0;
-                        item.nom = 2.56; //std
-                        break;
-                    case "VHDD":
-                        item.min = 8.0;
-                        item.nom = 8.4; //std
-                        break;
                     case "SHDD":
-                        item.min = 200.0;
-                        item.nom = 224.0; //std32
-                        break;
                     case "NPT":
-                        item.min = item.max * 0.75;
-                        item.nom = 19.0; //std
+                    case "VN":
+                    case "VPR":
+                    case "RE":
+                        item.min = ceil(item.max * 0.75);
+                        defRandomNomInt(item);
                         break;
                     case "NPR":
                         item.min = 1.0;
-                        item.nom = 2.0; //std
-                        break;
-                    case "VN":
-                        item.min = 500.0;
-                        item.nom = 700.0; //std50
+                        defRandomNomInt(item);
                         break;
                     case "CNET":
                         item.min = 8.0;
-                        item.nom = 16.0; //grade
+                        item.nom = item.max / 2;
                         break;
                     case "RP":
                         item.min = 300.0;
                         item.nom = 1200.0; //grade
                         break;
-                    case "VPR":
-                        item.min = 6.0;
-                        item.nom = 10.0; //std
-                        break;
-                    case "RE":
-                        item.min = 15.0;
-                        item.nom = 21.0; //std
-                        break;
                     case "VPRAM":
-                        item.min = 0.1;// item.max * 0.75; // std
-                        item.nom = 0.1; //std
+                        item.min = 0.1;
+                        defRandomNomDouble(item);
                 }
                 itemMap.put(item.sign, item);
                 tableView.refresh();
@@ -333,6 +341,7 @@ public class Lab3ServiceImpl extends TextResultBase implements Lab3Service {
             pPIndex = pVector[5] + pVector[6];
         }
 
+        @Override
         double sumSquarePIndices() {
             return pPCIndex * pPCIndex + pNETIndex * pNETIndex + pPIndex * pPIndex;
         }
@@ -490,6 +499,7 @@ public class Lab3ServiceImpl extends TextResultBase implements Lab3Service {
             pRGIndex = pVector[10] + pVector[11] + pVector[12] + pVector[13] + pVector[14];
         }
 
+        @Override
         double sumSquarePIndices() {
             return pOSIndex * pOSIndex + pDBIndex * pDBIndex + pEIndex * pEIndex + pRGIndex * pRGIndex;
         }
@@ -565,6 +575,7 @@ public class Lab3ServiceImpl extends TextResultBase implements Lab3Service {
             pMIndex = pVector[0] + pVector[1] + pVector[2];
         }
 
+        @Override
         double sumSquarePIndices() {
             return pMIndex * pMIndex;
         }
@@ -582,6 +593,8 @@ public class Lab3ServiceImpl extends TextResultBase implements Lab3Service {
         protected Map<String, ResourceItem> itemMap = new HashMap<>();
         protected List<String> matrixSignList;
         Double[] pVector;
+
+        abstract double sumSquarePIndices();
 
         public Double getAnyEqMatrixVal(int index) {
             return itemMap.get(matrixSignList.get(index)).max;
@@ -705,6 +718,8 @@ public class Lab3ServiceImpl extends TextResultBase implements Lab3Service {
                     var item = tableView.getSelectionModel().getSelectedItem();
                     item.setEditableValue(event.getNewValue(), event.getOldValue());
                     tableView.refresh();
+                    resetResult();
+                    resultArea.setText(getResult());
                 });
             }
             tableView.getColumns().add(tableColumn);
