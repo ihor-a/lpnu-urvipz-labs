@@ -26,7 +26,7 @@ abstract class TextResultBase {
 
     protected void appendResultValue(String description, double value, int indentLen) {
         String indent = indentLen > 0 ? " ".repeat(indentLen - description.length()) : " ";
-        appendResultText(String.format("%s:%s%f", description, indent, value));
+        appendResultText(String.format("%s%s= %f", description, indent, value));
     }
 
     protected void appendResultNewline() {
