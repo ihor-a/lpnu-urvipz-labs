@@ -9,7 +9,11 @@ import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.control.cell.TextFieldTableCell;
 
+import java.text.DecimalFormat;
 import java.util.*;
+
+import static java.lang.Math.abs;
+import static java.lang.Math.random;
 
 public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
 
@@ -17,10 +21,13 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
     private final ScrollPane resultPane1, resultPane2;
     private final TableView<ExpertItem> expertTableView1 = new TableView<>();
     private final TableView<ResourceItem> techTableView = new TableView<>();
+    private final TableView<ProbabilityItem> probabilityTableView = new TableView<>();
     private final ObservableList<ExpertItem> expertObservableList1 = FXCollections.observableArrayList();
     private final ObservableList<ResourceItem> techObservableList = FXCollections.observableArrayList();
+    private final ObservableList<ProbabilityItem> probabilityObservableList = FXCollections.observableArrayList();
 
-    private final ExpertResource expertResource1;
+    private final ProbabilityExpert probabilityExpert;
+    private final TechResource techResource;
 
     public Lab4ServiceImpl(ScrollPane scrollPane1, ScrollPane scrollPane2, ScrollPane scrollPane3, ScrollPane scrollPane4,
                            ScrollPane scrollPane5, ScrollPane resultPane1, ScrollPane resultPane2) {
@@ -32,14 +39,15 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
         this.resultPane1 = resultPane1;
         this.resultPane2 = resultPane2;
 
-        expertResource1 = new ExpertResource(expertObservableList1, expertTableView1);
-        new TechResource(techObservableList, techTableView);
+        probabilityExpert = new ProbabilityExpert(expertObservableList1, expertTableView1);
+        techResource = new TechResource(techObservableList, techTableView);
         initTables();
     }
 
     private void initTables() {
         initExpertTable(expertTableView1, scrollPane5, expertObservableList1);
         initResourceTable("Множина настання технічних ризикових подій", techTableView, scrollPane1, techObservableList);
+        initProbabilityTable(probabilityTableView, resultPane1, probabilityObservableList);
     }
 
     @Override
@@ -52,11 +60,26 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
         for (var item: expertObservableList1) {
             appendResultText(item.toString());
         }
-        for (var item: techObservableList) {
+        for (var item: techResource.observableList) {
             appendResultText(item.toString());
         }
 
+        calcProbability();
+
         return getResult();
+    }
+
+    private void calcProbability() {
+        probabilityObservableList.clear();
+
+        for (var resourceItem: techResource.observableList) {
+            if (!resourceItem.isEnabled()) {
+                continue;
+            }
+            ProbabilityItem probabilityItem = new ProbabilityItem(resourceItem.getName(), probabilityExpert);
+            probabilityItem.calcRandoms();
+            probabilityObservableList.add(probabilityItem);
+        }
     }
 
     class TechResource extends BaseResource {
@@ -79,7 +102,7 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
     }
 
     abstract class BaseResource {
-        protected ObservableList<ResourceItem> observableList;
+        ObservableList<ResourceItem> observableList;
         protected TableView<ResourceItem> tableView;
 
         public BaseResource(ObservableList<ResourceItem> observableList, TableView<ResourceItem> tableView) {
@@ -88,13 +111,11 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
         }
     }
 
-    class ExpertResource {
-        protected ObservableList<ExpertItem> observableList;
-        protected TableView<ExpertItem> tableView;
-
-        public ExpertResource(ObservableList<ExpertItem> observableList, TableView<ExpertItem> tableView) {
-            this.observableList = observableList;
-            this.tableView = tableView;
+    private class ProbabilityExpert extends BaseExpert {
+        public ProbabilityExpert(ObservableList<ExpertItem> observableList, TableView<ExpertItem> tableView) {
+            super(observableList, tableView);
+            randomSeed = 0.1;
+            randomMultiplier = 0.7;
 
             observableList.add(new ExpertItem("Технічних ризикових подій", 11, new Integer[]{10, 10, 9, 8, 10, 10, 8, 8, 10, 10}));
             observableList.add(new ExpertItem("Вартісних ризикових подій", 7, new Integer[]{8, 7, 9, 10, 8, 8, 10, 7, 8, 10}));
@@ -103,10 +124,158 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
         }
     }
 
+    protected abstract class BaseExpert {
+        protected ObservableList<ExpertItem> observableList;
+        protected TableView<ExpertItem> tableView;
+        protected double randomSeed, randomMultiplier;
+
+        public BaseExpert(ObservableList<ExpertItem> observableList, TableView<ExpertItem> tableView) {
+            this.observableList = observableList;
+            this.tableView = tableView;
+        }
+
+        double makeRandom() {
+            return randomSeed + random() * randomMultiplier;
+        }
+    }
+
+    public class ProbabilityItem extends BaseResultItem {
+        public ProbabilityItem(String name, BaseExpert expert) {
+            super(name, expert);
+        }
+
+        double result;
+
+        public String getResult() {
+            return getNumeric(result);
+        }
+    }
+
+    protected abstract class BaseResultItem {
+        final private int OFFSET = 1;
+        private final int AM_ELEMENTS = 10;
+        protected BaseExpert expert;
+        private final String name;
+        private double[] randoms = new double[AM_ELEMENTS];
+        private double[] estimates = new double[AM_ELEMENTS];
+        double sum;
+        int level;
+
+        public BaseResultItem(String name, BaseExpert expert) {
+            this.name = name;
+            this.expert = expert;
+        }
+
+        void calcRandoms() {
+            for (int i = 0; i<randoms.length; i++) {
+                randoms[i] = expert.makeRandom();
+            }
+            calcAvgSum();
+        }
+
+        void calcAvgSum() {
+            this.sum = Arrays.stream(randoms).sum() / AM_ELEMENTS;
+        }
+
+        public void setRandom(int number, double value) {
+            randoms[number-OFFSET] = value;
+        }
+        public void setEstimate(int number, double value) {
+            estimates[number-OFFSET] = value;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public String getSum() {
+            return getNumeric(sum);
+        }
+        protected String getNumeric(Double val) {
+            if (abs(val - (double)val.intValue()) != 0) {
+                return  new DecimalFormat("#.###").format(val);
+            } else {
+                return Integer.toString(val.intValue());
+            }
+        }
+
+        public String getLevel() {
+            return Integer.toString(level);
+        }
+
+        private String getRandom(int number) {
+            return getNumeric(randoms[number - OFFSET]);
+        }
+        private String getEstimate(int number) {
+            return getNumeric(estimates[number - OFFSET]);
+        }
+        public String getE1() {
+            return getEstimate(1);
+        }
+        public String getE2() {
+            return getEstimate(2);
+        }
+        public String getE3() {
+            return getEstimate(3);
+        }
+        public String getE4() {
+            return getEstimate(4);
+        }
+        public String getE5() {
+            return getEstimate(5);
+        }
+        public String getE6() {
+            return getEstimate(6);
+        }
+        public String getE7() {
+            return getEstimate(7);
+        }
+        public String getE8() {
+            return getEstimate(8);
+        }
+        public String getE9() {
+            return getEstimate(9);
+        }
+        public String getE10() {
+            return getEstimate(10);
+        }
+
+        public String getR1() {
+            return getRandom(1);
+        }
+        public String getR2() {
+            return getRandom(2);
+        }
+        public String getR3() {
+            return getRandom(3);
+        }
+        public String getR4() {
+            return getRandom(4);
+        }
+        public String getR5() {
+            return getRandom(5);
+        }
+        public String getR6() {
+            return getRandom(6);
+        }
+        public String getR7() {
+            return getRandom(7);
+        }
+        public String getR8() {
+            return getRandom(8);
+        }
+        public String getR9() {
+            return getRandom(9);
+        }
+        public String getR10() {
+            return getRandom(10);
+        }
+    }
+
     public static class ResourceItem {
         private final String name;
         BooleanProperty enabled;
-        private final Integer number;
+        final Integer number;
 
         public ResourceItem(String name, Integer number) {
             this.name = name;
@@ -233,6 +402,50 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
         scrollPane.setContent(tableView);
     }
 
+    protected void initProbabilityTable(TableView<ProbabilityItem> tableView, ScrollPane scrollPane,
+                                        ObservableList<ProbabilityItem> observableList) {
+        List<String[]> customConfig = new ArrayList<>(){{
+            add(new String[]{"result", "P"});
+        }};
+        initBaseResultTable(tableView, scrollPane, observableList, customConfig);
+    }
+    protected <T> void initBaseResultTable(TableView<T> tableView, ScrollPane scrollPane,
+                                           ObservableList<T> observableList,
+                                           List<String[]> customConfig) {
+        // Table already initialized
+        if (tableView.getColumns().size() > 0) {
+            tableView.getColumns().get(0).setPrefWidth(scrollPane.getWidth() * 0.25);
+            tableView.setPrefWidth(scrollPane.getWidth());
+            return;
+        }
+
+        TableColumn<T, String> tableColumn = new TableColumn<>("Назва");
+        tableColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
+        tableView.getColumns().add(tableColumn);
+
+        List<String[]> columnConfig = new ArrayList<>();
+        for (int i = 1; i<=10; i++) {
+            columnConfig.add(new String[]{"r"+i, String.valueOf(i)});
+        }
+        columnConfig.add(new String[]{"sum", "Σ"});
+        for (int i = 1; i<=10; i++) {
+            columnConfig.add(new String[]{"e"+i, String.valueOf(i)});
+        }
+
+        columnConfig.addAll(customConfig);
+        columnConfig.add(new String[]{"level", "Level"});
+
+        for (String[] column : columnConfig) {
+            tableColumn = new TableColumn<>(column[1]);
+            tableColumn.setPrefWidth(45d);
+            tableColumn.setCellValueFactory(new PropertyValueFactory<>(column[0]));
+            tableView.getColumns().add(tableColumn);
+        }
+
+        tableView.setItems(observableList);
+        scrollPane.setContent(tableView);
+    }
+
     private void initExpertTable(TableView<ExpertItem> tableView, ScrollPane scrollPane, ObservableList<ExpertItem> observableList) {
         // Table already initialized
         if (tableView.getColumns().size() > 0) {
@@ -242,6 +455,33 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
         tableView.setEditable(true);
         TableColumn<ExpertItem, String> tableColumn = new TableColumn<>("Множина\\ Коеф. вагомості експертів");
         tableColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
+//        tableColumn.setCellFactory(new Callback<>() {
+//            @Override
+//            public TableCell<ExpertItem, String> call(TableColumn<ExpertItem, String> param) {
+//                return new TableCell<>() {
+//                    @Override
+//                    public void updateIndex(int i) {
+//                        super.updateIndex(i);
+//                        if (i == 1) {
+//                            this.setStyle("-fx-background-color: #00eeee;");
+//                        }
+//                        var observableList = param.getTableView().getItems();
+//                        if (i >= 0 && i < observableList.size()) {
+//                            System.out.printf("Cell(%d): %s%n", i, param.getCellData(i));
+//                            System.out.println(observableList.get(i));
+//                        }
+//                    }
+//
+//                    @Override
+//                    protected void updateItem(String item, boolean empty) {
+//                        super.updateItem(item, empty);
+//                        if (item != null) {
+//                            setText(item);
+//                        }
+//                    }
+//                };
+//            }
+//        });
         tableView.getColumns().add(tableColumn);
 
         List<String[]> columnConfig = new ArrayList<>(){{
