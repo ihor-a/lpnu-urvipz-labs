@@ -11,7 +11,7 @@ public class Lab4Application extends Application {
     @Override
     public void start(Stage stage) throws IOException {
         FXMLLoader fxmlLoader = new FXMLLoader(Lab4Application.class.getResource("lab4-view.fxml"));
-        Scene scene = new Scene(fxmlLoader.load(), 1444, 975);
+        Scene scene = new Scene(fxmlLoader.load(), 1450, 975);
 
         stage.setTitle("MPZIP-11 :: UR v IPZ Lab 4 :: Variant 1");
         stage.setScene(scene);

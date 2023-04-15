@@ -8,6 +8,7 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.control.cell.TextFieldTableCell;
+import javafx.util.Callback;
 
 import java.text.DecimalFormat;
 import java.util.*;
@@ -28,6 +29,12 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
 
     private final ProbabilityExpert probabilityExpert;
     private final TechResource techResource;
+    private final String[] resourceTitles = new String[]{
+            "Множина настання технічних ризикових подій",
+            "Множина настання вартісних ризикових подій",
+            "Множина настання планових ризикових подій",
+            "Множина настання ризикових подій реалізації\nпроцесу управління програмним проектом"
+    };
 
     public Lab4ServiceImpl(ScrollPane scrollPane1, ScrollPane scrollPane2, ScrollPane scrollPane3, ScrollPane scrollPane4,
                            ScrollPane scrollPane5, ScrollPane resultPane1, ScrollPane resultPane2) {
@@ -46,7 +53,7 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
 
     private void initTables() {
         initExpertTable(expertTableView1, scrollPane5, expertObservableList1);
-        initResourceTable("Множина настання технічних ризикових подій", techTableView, scrollPane1, techObservableList);
+        initResourceTable(techResource.getTitle(), techTableView, scrollPane1, techObservableList);
         initProbabilityTable(probabilityTableView, resultPane1, probabilityObservableList);
     }
 
@@ -64,50 +71,106 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
             appendResultText(item.toString());
         }
 
-        calcProbability();
+        probabilityObservableList.clear();
+        calcProbability(techResource);
 
         return getResult();
     }
 
-    private void calcProbability() {
-        probabilityObservableList.clear();
+    private void calcProbability(BaseResource resource) {
+        List<ProbabilityItem> resultList = new ArrayList<>();
 
-        for (var resourceItem: techResource.observableList) {
+        for (var resourceItem: resource.observableList) {
             if (!resourceItem.isEnabled()) {
                 continue;
             }
-            ProbabilityItem probabilityItem = new ProbabilityItem(resourceItem.getName(), probabilityExpert);
-            probabilityItem.calcRandoms();
-            probabilityObservableList.add(probabilityItem);
+
+            ProbabilityItem probabilityItem = new ProbabilityItem(resourceItem.getName());
+            for (int i = 0; i<probabilityItem.randoms.length; i++) {
+                probabilityItem.randoms[i] = resource.makeRandom() + random() * probabilityExpert.makeRandom();
+                probabilityItem.estimates[i] = probabilityItem.randoms[i] *
+                        probabilityExpert.getValue(resource.resourceIndex, i);
+            }
+            probabilityItem.sum = Arrays.stream(probabilityItem.randoms).sum() / probabilityItem.randoms.length;
+            probabilityItem.result = Arrays.stream(probabilityItem.estimates).reduce(0, Double::sum) /
+                    probabilityExpert.getSumValue(resource.resourceIndex);
+            probabilityItem.level = defProbabilityLevel(probabilityItem.result);
+
+            resultList.add(probabilityItem);
         }
+
+        // Resource row
+        ProbabilityItem probabilityItem = new ProbabilityItem(resource.getTitle());
+        for (int i = 0; i<probabilityItem.randoms.length; i++) {
+            probabilityItem.randoms[i] = probabilityExpert.getValue(resource.resourceIndex, i);
+            int finalI = i;
+            probabilityItem.estimates[i] = resultList.stream().map(item -> item.estimates[finalI]).reduce(0d, Double::sum) /
+                    resultList.size() / probabilityItem.randoms[i];
+        }
+        probabilityItem.sum = probabilityExpert.getSumValue(resource.resourceIndex);
+        probabilityItem.result = resultList.stream().map(item -> item.result).reduce(0d, Double::sum) /
+                resultList.size();
+        probabilityItem.level = defProbabilityLevel(probabilityItem.result);
+
+        resultList.add(0, probabilityItem);
+
+        probabilityObservableList.addAll(resultList);
     }
 
-    class TechResource extends BaseResource {
+    private String defProbabilityLevel(double result) {
+        String level = "ДВ";
+
+        if (result < 0.1) {
+            level = "ДН";
+        } else if (result >= 0.1 && result < 0.25) {
+            level = "Н";
+        } else if (result >= 0.25 && result < 0.5) {
+            level = "С";
+        } else if (result >= 0.5 && result < 0.75) {
+            level = "В";
+        }
+        return level;
+    }
+
+    private class TechResource extends BaseResource {
         public TechResource(ObservableList<ResourceItem> observableListExt, TableView<ResourceItem> tableView) {
             super(observableListExt, tableView);
+            randomSeed = 0.11;
+            randomMultiplier = 0.11;
+            resourceIndex = 0;
 
             Integer number = 1;
-            observableList.add(new ResourceItem("затримки у постачанні обладнання, необхідного для підтримки процесу розроблення ПЗ", number++));
-            observableList.add(new ResourceItem("затримки у постачанні інструмент. засобів, необхідних для процесу розроблення ПЗ", number++));
-            observableList.add(new ResourceItem("небажання команди виконавців використовувати інструмент. засоби для розроблення ПЗ", number++));
-            observableList.add(new ResourceItem("формування запитів на більш потужні інструментальні засоби розроблення ПЗ", number++));
-            observableList.add(new ResourceItem("відмова команди виконавців від CASE-засобів розроблення ПЗ", number++));
-            observableList.add(new ResourceItem("неефективність програмного коду, згенерованого CASE-засобами розроблення ПЗ", number++));
-            observableList.add(new ResourceItem("неможливість інтеграції CASE-засобів з іншими інструмент. засобами для підтримки розроблення ПЗ", number++));
-            observableList.add(new ResourceItem("недостатня продуктивність баз(и) даних для підтримки процесу розроблення ПЗ", number++));
-            observableList.add(new ResourceItem("прогр. компоненти, які використовують повторно в ПЗ, мають дефекти та обмежені функ. можливості", number++));
-            observableList.add(new ResourceItem("швидкість виявлення дефектів у програмному коді є нижчою від раніше запланованих термінів", number++));
-            observableList.add(new ResourceItem("поява дефектних системних компонент, які використовують для розроблення ПЗ", number++));
+            observableList.add(new ResourceItem("затримки у постачанні обладнання, необхідного\nдля підтримки процесу розроблення ПЗ", number++));
+            observableList.add(new ResourceItem("затримки у постачанні інструментальних засобів,\nнеобхідних для процесу розроблення ПЗ", number++));
+            observableList.add(new ResourceItem("небажання команди виконавців використовувати\nінструментальні засоби для розроблення ПЗ", number++));
+            observableList.add(new ResourceItem("формування запитів на більш потужні інструментальні\nзасоби розроблення ПЗ", number++));
+            observableList.add(new ResourceItem("відмова команди виконавців від CASE-засобів\nрозроблення ПЗ", number++));
+            observableList.add(new ResourceItem("неефективність програмного коду, згенерованого\nCASE-засобами розроблення ПЗ", number++));
+            observableList.add(new ResourceItem("неможливість інтеграції CASE-засобів з іншими інструментальними\nзасобами для підтримки розроблення ПЗ", number++));
+            observableList.add(new ResourceItem("недостатня продуктивність баз(и) даних \nдля підтримки процесу розроблення ПЗ", number++));
+            observableList.add(new ResourceItem("прогр. компоненти, які використовують повторно в ПЗ,\nмають дефекти та обмежені функ. можливості", number++));
+            observableList.add(new ResourceItem("швидкість виявлення дефектів у програмному коді\nє нижчою від раніше запланованих термінів", number++));
+            observableList.add(new ResourceItem("поява дефектних системних компонент,\nякі використовують для розроблення ПЗ", number++));
         }
     }
 
-    abstract class BaseResource {
-        ObservableList<ResourceItem> observableList;
+    protected abstract class BaseResource {
+        protected ObservableList<ResourceItem> observableList;
         protected TableView<ResourceItem> tableView;
+        protected double randomSeed, randomMultiplier;
+        protected int resourceIndex = -1; // undefined
 
         public BaseResource(ObservableList<ResourceItem> observableList, TableView<ResourceItem> tableView) {
             this.observableList = observableList;
             this.tableView = tableView;
+        }
+
+        String getTitle() {
+            return resourceIndex >=0 ? resourceTitles[resourceIndex] : "resourceIndex undefined";
+        }
+
+        double makeRandom() {
+            return randomSeed + random() * randomMultiplier;
         }
     }
 
@@ -137,11 +200,18 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
         double makeRandom() {
             return randomSeed + random() * randomMultiplier;
         }
+
+        double getValue(int resourceIndex, int expertIndex) {
+            return observableList.get(resourceIndex).values[expertIndex];
+        }
+        int getSumValue(int resourceIndex) {
+            return Arrays.stream(observableList.get(resourceIndex).values).reduce(0, Integer::sum);
+        }
     }
 
     public class ProbabilityItem extends BaseResultItem {
-        public ProbabilityItem(String name, BaseExpert expert) {
-            super(name, expert);
+        public ProbabilityItem(String name) {
+            super(name);
         }
 
         double result;
@@ -154,34 +224,15 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
     protected abstract class BaseResultItem {
         final private int OFFSET = 1;
         private final int AM_ELEMENTS = 10;
-        protected BaseExpert expert;
         private final String name;
-        private double[] randoms = new double[AM_ELEMENTS];
-        private double[] estimates = new double[AM_ELEMENTS];
-        double sum;
-        int level;
+        protected double[] randoms = new double[AM_ELEMENTS];
+        protected double[] estimates = new double[AM_ELEMENTS];
+        protected double sum;
+        String level;
+        int rowType = 0; // for row bg color. default uncolored
 
-        public BaseResultItem(String name, BaseExpert expert) {
+        public BaseResultItem(String name) {
             this.name = name;
-            this.expert = expert;
-        }
-
-        void calcRandoms() {
-            for (int i = 0; i<randoms.length; i++) {
-                randoms[i] = expert.makeRandom();
-            }
-            calcAvgSum();
-        }
-
-        void calcAvgSum() {
-            this.sum = Arrays.stream(randoms).sum() / AM_ELEMENTS;
-        }
-
-        public void setRandom(int number, double value) {
-            randoms[number-OFFSET] = value;
-        }
-        public void setEstimate(int number, double value) {
-            estimates[number-OFFSET] = value;
         }
 
         public String getName() {
@@ -200,7 +251,7 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
         }
 
         public String getLevel() {
-            return Integer.toString(level);
+            return level;
         }
 
         private String getRandom(int number) {
@@ -384,7 +435,7 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
         // Table already initialized
         if (tableView.getColumns().size() > 0) {
             tableView.setPrefWidth(scrollPane.getWidth());
-            tableView.getColumns().get(0).setMaxWidth(scrollPane.getWidth() * 0.90);
+            tableView.getColumns().get(0).setPrefWidth(scrollPane.getWidth() * 0.80);
             return;
         }
         
@@ -405,7 +456,7 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
     protected void initProbabilityTable(TableView<ProbabilityItem> tableView, ScrollPane scrollPane,
                                         ObservableList<ProbabilityItem> observableList) {
         List<String[]> customConfig = new ArrayList<>(){{
-            add(new String[]{"result", "P"});
+            add(new String[]{"result", "Йм-ть"});
         }};
         initBaseResultTable(tableView, scrollPane, observableList, customConfig);
     }
@@ -418,6 +469,22 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
             tableView.setPrefWidth(scrollPane.getWidth());
             return;
         }
+
+        // Contains bug
+//        tableView.setRowFactory(param -> {
+//            return new TableRow<>() {
+//                @Override
+//                protected void updateItem(T item, boolean empty) {
+//                    super.updateItem(item, empty);
+//
+//                    var row = (BaseResultItem) item;
+//                    if (row != null && Arrays.asList(resourceTitles).contains(row.getName())) {
+//                        this.setStyle("-fx-background-color: #eeeeff;");
+//                        System.out.printf("%s %d%n", row.getName(), getIndex());
+//                    }
+//                }
+//            };
+//        });
 
         TableColumn<T, String> tableColumn = new TableColumn<>("Назва");
         tableColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
@@ -433,12 +500,41 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
         }
 
         columnConfig.addAll(customConfig);
-        columnConfig.add(new String[]{"level", "Level"});
+        columnConfig.add(new String[]{"level", "Рівень"});
 
         for (String[] column : columnConfig) {
             tableColumn = new TableColumn<>(column[1]);
-            tableColumn.setPrefWidth(45d);
+            tableColumn.setPrefWidth(42d);
             tableColumn.setCellValueFactory(new PropertyValueFactory<>(column[0]));
+            switch (column[0]) {
+                case "sum" -> tableColumn.setStyle("-fx-background-color: #CCFFFF;");
+                case "result" -> tableColumn.setStyle("-fx-background-color: #CCFFCC;");
+                case "level" -> tableColumn.setCellFactory(new Callback<>() {
+                    @Override
+                    public TableCell<T, String> call(TableColumn<T, String> param) {
+                        return new TableCell<>() {
+                            @Override
+                            protected void updateItem(String item, boolean empty) {
+                                super.updateItem(item, empty);
+                                //TableRow<T> tableRow = getTableRow();
+                                //tableRow.setStyle("-fx-background-color: #eeeeff;");
+
+                                if (item != null) {
+                                    setText(item);
+                                    var color = switch (item) {
+                                        case "ДН" -> "DDEBF7";
+                                        case "Н" -> "BDD7EE";
+                                        case "С" -> "FFD966";
+                                        case "В" -> "F4B084";
+                                        default -> "C65911";
+                                    };
+                                    this.setStyle("-fx-background-color: #" + color + ";");
+                                }
+                            }
+                        };
+                    }
+                });
+            }
             tableView.getColumns().add(tableColumn);
         }
 
