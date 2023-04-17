@@ -2,6 +2,7 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.Tab?>
 <?import javafx.scene.control.TabPane?>
@@ -9,33 +10,57 @@
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.VBox?>
 
-<VBox alignment="CENTER" prefHeight="953.0" prefWidth="1444.0" spacing="20.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.lpnuurvipzlabs.Lab4Controller">
+<VBox alignment="CENTER" prefHeight="953.0" prefWidth="1575.0" spacing="20.0" xmlns="http://javafx.com/javafx/19" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.lpnuurvipzlabs.Lab4Controller">
     <padding>
         <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
     </padding>
    <TabPane prefHeight="970.0" prefWidth="1254.0" tabClosingPolicy="UNAVAILABLE">
      <tabs>
-       <Tab text="        Етап 1        ">
+       <Tab text="    Вхідні дані    ">
          <content>
            <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
                   <children>
-                     <ScrollPane fx:id="scrollPane5" prefHeight="145.0" prefWidth="702.0" />
-                      <Button layoutX="738.0" layoutY="312.0" onAction="#onCalculateButtonClick" prefHeight="26.0" prefWidth="77.0" text="Calculate" />
-                     <ScrollPane fx:id="scrollPane1" layoutY="145.0" prefHeight="200.0" prefWidth="702.0" />
-                     <ScrollPane fx:id="resultPane1" layoutX="-3.0" layoutY="344.0" prefHeight="541.0" prefWidth="1410.0" />
-                     <TextArea fx:id="resultArea" layoutX="702.0" layoutY="3.0" prefHeight="309.0" prefWidth="706.0" />
+                     <ScrollPane fx:id="expertPane1" layoutX="1.0" layoutY="675.0" prefHeight="145.0" prefWidth="768.0" />
+                     <ScrollPane fx:id="resourcePane1" layoutX="-1.0" layoutY="8.0" prefHeight="309.0" prefWidth="768.0" />
+                     <ScrollPane fx:id="expertPane2" layoutX="767.0" layoutY="675.0" prefHeight="145.0" prefWidth="769.0" />
+                     <ScrollPane fx:id="resourcePane2" layoutX="767.0" layoutY="8.0" prefHeight="309.0" prefWidth="768.0" />
+                     <ScrollPane fx:id="resourcePane3" layoutY="317.0" prefHeight="340.0" prefWidth="768.0" />
+                     <ScrollPane fx:id="resourcePane4" layoutX="767.0" layoutY="317.0" prefHeight="340.0" prefWidth="768.0" />
+                     <ScrollPane fx:id="costsPane2" layoutX="767.0" layoutY="835.0" prefHeight="57.0" prefWidth="769.0" />
+                     <Label layoutX="332.0" layoutY="658.0" prefHeight="17.0" prefWidth="105.0" text="Для ймовірності:" />
+                     <Label layoutX="1153.0" layoutY="658.0" prefHeight="17.0" prefWidth="84.0" text="Для збитків:" />
+                     <Label layoutX="1165.0" layoutY="820.0" prefHeight="17.0" prefWidth="60.0" text="Вартість:" />
+                     <Button layoutX="368.0" layoutY="842.0" onAction="#onCalculateButtonClick" prefHeight="26.0" prefWidth="77.0" text="Calculate" />
                   </children>
                </AnchorPane>
          </content>
        </Tab>
-       <Tab text="        Етап 2        ">
+       <Tab text="Ймовірність настання ризикових подій">
          <content>
-           <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="1236.0" />
+           <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="1236.0">
+                  <children>
+                     <ScrollPane fx:id="resultPane1" prefHeight="844.0" prefWidth="1541.0" />
+                     <Button layoutX="729.0" layoutY="855.0" onAction="#onCalculateButtonClick" prefHeight="26.0" prefWidth="77.0" text="Calculate" />
+                  </children></AnchorPane>
          </content>
        </Tab>
-         <Tab text="        Етап 3,4        ">
+         <Tab text="Можливі збитки від прояву ризику">
            <content>
-             <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0" />
+             <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+                  <children>
+                     <ScrollPane fx:id="resultPane2" prefHeight="846.0" prefWidth="1541.0" />
+                     <Button layoutX="729.0" layoutY="856.0" onAction="#onCalculateButtonClick" prefHeight="26.0" prefWidth="77.0" text="Calculate" />
+                  </children></AnchorPane>
+           </content>
+         </Tab>
+         <Tab text="Планування ризиків">
+           <content>
+             <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="180.0" prefWidth="200.0">
+                  <children>
+                     <TextArea fx:id="resultArea" layoutY="649.0" prefHeight="219.0" prefWidth="1065.0" />
+                     <ScrollPane fx:id="planRiskPane" prefHeight="647.0" prefWidth="1535.0" />
+                  </children>
+               </AnchorPane>
            </content>
          </Tab>
      </tabs>

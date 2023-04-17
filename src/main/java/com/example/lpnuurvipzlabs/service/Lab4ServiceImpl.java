@@ -6,55 +6,86 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.CheckBoxTableCell;
+import javafx.scene.control.cell.ComboBoxTableCell;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.util.Callback;
 
 import java.text.DecimalFormat;
 import java.util.*;
+import java.util.stream.IntStream;
 
 import static java.lang.Math.abs;
 import static java.lang.Math.random;
 
 public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
 
-    private final ScrollPane scrollPane1, scrollPane2, scrollPane3, scrollPane4, scrollPane5;
-    private final ScrollPane resultPane1, resultPane2;
+    private final ScrollPane resourcePane1, resourcePane2, resourcePane3, resourcePane4;
+    private final ScrollPane expertPane1, expertPane2, costsPane2, resultPane1, resultPane2, planRiskPane;
     private final TableView<ExpertItem> expertTableView1 = new TableView<>();
+    private final TableView<ExpertItem> expertTableView2 = new TableView<>();
+    private final TableView<CostItem> costTableView = new TableView<>();
     private final TableView<ResourceItem> techTableView = new TableView<>();
-    private final TableView<ProbabilityItem> probabilityTableView = new TableView<>();
+    private final TableView<ResourceItem> costRiskTableView = new TableView<>();
+    private final TableView<ResourceItem> planTableView = new TableView<>();
+    private final TableView<ResourceItem> implementTableView = new TableView<>();
+    private final TableView<ProbabilityResultItem> probabilityResultTableView = new TableView<>();
+    private final TableView<CostResultItem> costResultTableView = new TableView<>();
+    private final TableView<MeasureItem> measureItemTableView = new TableView<>();
     private final ObservableList<ExpertItem> expertObservableList1 = FXCollections.observableArrayList();
+    private final ObservableList<ExpertItem> expertObservableList2 = FXCollections.observableArrayList();
+    private final ObservableList<CostItem> costObservableList = FXCollections.observableArrayList();
     private final ObservableList<ResourceItem> techObservableList = FXCollections.observableArrayList();
-    private final ObservableList<ProbabilityItem> probabilityObservableList = FXCollections.observableArrayList();
+    private final ObservableList<ResourceItem> costRiskObservableList = FXCollections.observableArrayList();
+    private final ObservableList<ResourceItem> planObservableList = FXCollections.observableArrayList();
+    private final ObservableList<ResourceItem> implementObservableList = FXCollections.observableArrayList();
+    private final ObservableList<ProbabilityResultItem> probabilityResultObservableList = FXCollections.observableArrayList();
+    private final ObservableList<CostResultItem> costResultObservableList = FXCollections.observableArrayList();
+    private final ObservableList<MeasureItem> measureObservableList = FXCollections.observableArrayList();
 
     private final ProbabilityExpert probabilityExpert;
+    private final CostExpert costExpert;
+    private final CostResource costResource;
     private final TechResource techResource;
-    private final String[] resourceTitles = new String[]{
-            "Множина настання технічних ризикових подій",
-            "Множина настання вартісних ризикових подій",
-            "Множина настання планових ризикових подій",
-            "Множина настання ризикових подій реалізації\nпроцесу управління програмним проектом"
-    };
+    private final CostRiskResource costRiskResource;
+    private final PlanResource planResource;
+    private final ImplementResource implementResource;
 
-    public Lab4ServiceImpl(ScrollPane scrollPane1, ScrollPane scrollPane2, ScrollPane scrollPane3, ScrollPane scrollPane4,
-                           ScrollPane scrollPane5, ScrollPane resultPane1, ScrollPane resultPane2) {
-        this.scrollPane1 = scrollPane1;
-        this.scrollPane2 = scrollPane2;
-        this.scrollPane3 = scrollPane3;
-        this.scrollPane4 = scrollPane4;
-        this.scrollPane5 = scrollPane5;
+    public Lab4ServiceImpl(ScrollPane resourcePane1, ScrollPane resourcePane2, ScrollPane resourcePane3, ScrollPane resourcePane4,
+                           ScrollPane expertPane1, ScrollPane expertPane2, ScrollPane costsPane2,
+                           ScrollPane resultPane1, ScrollPane resultPane2, ScrollPane planRiskPane) {
+        this.resourcePane1 = resourcePane1;
+        this.resourcePane2 = resourcePane2;
+        this.resourcePane3 = resourcePane3;
+        this.resourcePane4 = resourcePane4;
+        this.expertPane1 = expertPane1;
+        this.expertPane2 = expertPane2;
+        this.costsPane2 = costsPane2;
         this.resultPane1 = resultPane1;
         this.resultPane2 = resultPane2;
+        this.planRiskPane = planRiskPane;
 
         probabilityExpert = new ProbabilityExpert(expertObservableList1, expertTableView1);
+        costExpert = new CostExpert(expertObservableList2, expertTableView2);
+        costResource = new CostResource(costObservableList, costTableView);
         techResource = new TechResource(techObservableList, techTableView);
+        costRiskResource = new CostRiskResource(costRiskObservableList, costRiskTableView);
+        planResource = new PlanResource(planObservableList, planTableView);
+        implementResource = new ImplementResource(implementObservableList, implementTableView);
         initTables();
     }
 
     private void initTables() {
-        initExpertTable(expertTableView1, scrollPane5, expertObservableList1);
-        initResourceTable(techResource.getTitle(), techTableView, scrollPane1, techObservableList);
-        initProbabilityTable(probabilityTableView, resultPane1, probabilityObservableList);
+        initExpertTable(expertTableView1, expertPane1, expertObservableList1);
+        initExpertTable(expertTableView2, expertPane2, expertObservableList2);
+        initCostTable(costTableView, costsPane2, costObservableList);
+        initResourceTable(techResource.getTitle(), techTableView, resourcePane1, techObservableList);
+        initResourceTable(costRiskResource.getTitle(), costRiskTableView, resourcePane2, costRiskObservableList);
+        initResourceTable(planResource.getTitle(), planTableView, resourcePane3, planObservableList);
+        initResourceTable(implementResource.getTitle(), implementTableView, resourcePane4, implementObservableList);
+        initProbabilityResultTable(probabilityResultTableView, resultPane1, probabilityResultObservableList);
+        initCostResultTable(costResultTableView, resultPane2, costResultObservableList);
+        initMeasureTable(measureItemTableView, planRiskPane, measureObservableList);
     }
 
     @Override
@@ -64,57 +95,182 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
         appendResultText("Lab4 result");
         appendResultNewline();
 
-        for (var item: expertObservableList1) {
-            appendResultText(item.toString());
+//        for (var item: expertObservableList1) {
+//            appendResultText(item.toString());
+//        }
+//        for (var item: techResource.observableList) {
+//            appendResultText(item.toString());
+//        }
+
+        // Probability block
+        probabilityResultObservableList.clear();
+        for (var resource: Arrays.asList(techResource, costRiskResource, planResource, implementResource)) {
+            calcProbability(resource, probabilityExpert);
         }
-        for (var item: techResource.observableList) {
-            appendResultText(item.toString());
+        probabilityResultTableView.refresh();
+
+        // Costs block
+        costResultObservableList.clear();
+        double minAddCost = Double.MAX_VALUE, maxAddCost = Double.MIN_VALUE;
+        double[] minMax;
+
+        for (var resource: Arrays.asList(techResource, costRiskResource, planResource, implementResource)) {
+            minMax = calcCosts(resource, costExpert);
+            minAddCost = Math.min(minAddCost, minMax[0]);
+            maxAddCost = Math.max(maxAddCost, minMax[1]);
         }
 
-        probabilityObservableList.clear();
-        calcProbability(techResource);
+        var mpr = (maxAddCost - minAddCost) / 3;
+        List<double[]> costsList = new ArrayList<>();
+        costsList.add(new double[]{minAddCost, minAddCost+mpr});
+        costsList.add(new double[]{costsList.get(0)[1], costsList.get(0)[1]+mpr});
+        costsList.add(new double[]{costsList.get(1)[1], costsList.get(1)[1]+mpr});
+
+        for (var item: costResultObservableList) {
+            if (item.name == null) {
+                continue;
+            }
+            item.level = defCostLevel(item.addCost, costsList);
+        }
+        costResultTableView.refresh();
+
+        // Measures block
+        calcMeasure(techResource);
 
         return getResult();
     }
 
-    private void calcProbability(BaseResource resource) {
-        List<ProbabilityItem> resultList = new ArrayList<>();
+    private double[] splitRandomly(double source, int n) {
+        if (n < 1) {
+            return new double[1];
+        }
+        double[] result = new double[n];
+
+        Random rand = new Random();
+        var steps = IntStream.range(0, n-1).mapToDouble(operand -> rand.nextDouble(source)).sorted().toArray();
+
+        for (int i = 0; i < n-1; i++) {
+            result[i] = steps[i] - (i-1 >= 0 ? steps[i-1] : 0);
+        }
+        result[n-1] = source - Arrays.stream(result).sum();
+
+        return result;
+    }
+
+    private void calcProbability(BaseResource resource, BaseExpert expert) {
+        List<ProbabilityResultItem> resultList = new ArrayList<>();
+
+        var resourceRandoms = splitRandomly(1d, (int)resource.observableList.stream().filter(ResourceItem::isEnabled).count());
+        int row = 0;
 
         for (var resourceItem: resource.observableList) {
             if (!resourceItem.isEnabled()) {
                 continue;
             }
 
-            ProbabilityItem probabilityItem = new ProbabilityItem(resourceItem.getName());
-            for (int i = 0; i<probabilityItem.randoms.length; i++) {
-                probabilityItem.randoms[i] = resource.makeRandom() + random() * probabilityExpert.makeRandom();
-                probabilityItem.estimates[i] = probabilityItem.randoms[i] *
-                        probabilityExpert.getValue(resource.resourceIndex, i);
+            ProbabilityResultItem probabilityResultItem = new ProbabilityResultItem(resourceItem.getOrigName());
+            for (int i = 0; i< probabilityResultItem.randoms.length; i++) {
+                probabilityResultItem.randoms[i] = resourceRandoms[row] + random() * expert.makeRandom();
+                probabilityResultItem.estimates[i] = probabilityResultItem.randoms[i] *
+                        expert.getValue(resource.resourceIndex, i);
             }
-            probabilityItem.sum = Arrays.stream(probabilityItem.randoms).sum() / probabilityItem.randoms.length;
-            probabilityItem.result = Arrays.stream(probabilityItem.estimates).reduce(0, Double::sum) /
-                    probabilityExpert.getSumValue(resource.resourceIndex);
-            probabilityItem.level = defProbabilityLevel(probabilityItem.result);
+            probabilityResultItem.sum = Arrays.stream(probabilityResultItem.randoms).sum() / probabilityResultItem.randoms.length;
+            probabilityResultItem.result = Arrays.stream(probabilityResultItem.estimates).reduce(0, Double::sum) /
+                    expert.getSumValue(resource.resourceIndex);
+            probabilityResultItem.level = defProbabilityLevel(probabilityResultItem.result);
 
-            resultList.add(probabilityItem);
+            resultList.add(probabilityResultItem);
+            row++;
         }
 
         // Resource row
-        ProbabilityItem probabilityItem = new ProbabilityItem(resource.getTitle());
-        for (int i = 0; i<probabilityItem.randoms.length; i++) {
-            probabilityItem.randoms[i] = probabilityExpert.getValue(resource.resourceIndex, i);
+        ProbabilityResultItem probabilityResultItem = new ProbabilityResultItem(resource.getTitle());
+        for (int i = 0; i< probabilityResultItem.randoms.length; i++) {
+            probabilityResultItem.randoms[i] = expert.getValue(resource.resourceIndex, i);
             int finalI = i;
-            probabilityItem.estimates[i] = resultList.stream().map(item -> item.estimates[finalI]).reduce(0d, Double::sum) /
-                    resultList.size() / probabilityItem.randoms[i];
+            probabilityResultItem.estimates[i] = resultList.stream().map(item -> item.estimates[finalI]).reduce(0d, Double::sum) /
+                    resultList.size() / probabilityResultItem.randoms[i];
         }
-        probabilityItem.sum = probabilityExpert.getSumValue(resource.resourceIndex);
-        probabilityItem.result = resultList.stream().map(item -> item.result).reduce(0d, Double::sum) /
+        probabilityResultItem.sum = expert.getSumValue(resource.resourceIndex);
+        probabilityResultItem.result = resultList.stream().map(item -> item.result).reduce(0d, Double::sum) /
                 resultList.size();
-        probabilityItem.level = defProbabilityLevel(probabilityItem.result);
+        probabilityResultItem.level = defProbabilityLevel(probabilityResultItem.result);
 
-        resultList.add(0, probabilityItem);
+        resultList.add(0, probabilityResultItem);
 
-        probabilityObservableList.addAll(resultList);
+        // Add empty line
+        if (resource.resourceIndex > 0) {
+            resultList.add(0, new ProbabilityResultItem(null));
+        }
+
+        probabilityResultObservableList.addAll(resultList);
+    }
+    private double[] calcCosts(BaseResource resource, BaseExpert expert) {
+        List<CostResultItem> resultList = new ArrayList<>();
+        var minMax = new double[2];
+
+        var resourceRandoms = splitRandomly(1d, (int)resource.observableList.stream().filter(ResourceItem::isEnabled).count());
+        int row = 0;
+
+        for (var resourceItem: resource.observableList) {
+            if (!resourceItem.isEnabled()) {
+                continue;
+            }
+
+            CostResultItem costResultItem = new CostResultItem(resourceItem.getOrigName());
+            for (int i = 0; i< costResultItem.randoms.length; i++) {
+                costResultItem.randoms[i] = resourceRandoms[row] + random() * expert.makeRandom();
+                costResultItem.estimates[i] = costResultItem.randoms[i] *
+                        expert.getValue(resource.resourceIndex, i);
+            }
+            costResultItem.startCost = costResource.getValue(resource.resourceIndex) * resourceRandoms[row];
+            costResultItem.sum = Arrays.stream(costResultItem.randoms).sum() / costResultItem.randoms.length *
+                    costResultItem.startCost;
+            costResultItem.addCost = Arrays.stream(costResultItem.estimates).reduce(0, Double::sum) /
+                    expert.getSumValue(resource.resourceIndex) * costResultItem.startCost;
+            costResultItem.finalCost = costResultItem.startCost + costResultItem.addCost;
+//            costResultItem.level = defProbabilityLevel(costResultItem.result);
+
+            resultList.add(costResultItem);
+            row++;
+        }
+        minMax[0] = resultList.stream().mapToDouble(item -> item.addCost).min().orElse(0);
+        minMax[1] = resultList.stream().mapToDouble(item -> item.addCost).max().orElse(0);
+
+        // Resource row
+        CostResultItem costResultItem = new CostResultItem(resource.getTitle());
+        for (int i = 0; i< costResultItem.randoms.length; i++) {
+            costResultItem.randoms[i] = expert.getValue(resource.resourceIndex, i);
+            int finalI = i;
+            costResultItem.estimates[i] = resultList.stream().map(item -> item.estimates[finalI]).reduce(0d, Double::sum) /
+                    resultList.size() / costResultItem.randoms[i];
+        }
+        costResultItem.sum = expert.getSumValue(resource.resourceIndex);
+        costResultItem.startCost = costResource.getValue(resource.resourceIndex);
+        costResultItem.addCost = resultList.stream().map(item -> item.addCost).reduce(0d, Double::sum);
+        costResultItem.finalCost = costResultItem.startCost + costResultItem.addCost;
+//        costResultItem.level = defProbabilityLevel(costResultItem.result);
+
+        resultList.add(0, costResultItem);
+
+        // Add empty line
+        if (resource.resourceIndex > 0) {
+            resultList.add(0, new CostResultItem(null));
+        }
+        costResultObservableList.addAll(resultList);
+
+        return minMax;
+    }
+
+    private void calcMeasure(BaseResource resource) {
+
+        for (var resourceItem: resource.observableList) {
+            if (!resourceItem.isEnabled()) {
+                continue;
+            }
+
+            measureObservableList.add(new MeasureItem(resourceItem.getName()));
+        }
     }
 
     private String defProbabilityLevel(double result) {
@@ -132,11 +288,38 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
         return level;
     }
 
+    private String defCostLevel(double addCost, List<double[]> costsList) {
+        String level = "ВзМ";
+
+        if (addCost >= costsList.get(0)[0] && addCost < costsList.get(0)[1]) {
+            level = "Н";
+        } else if (addCost >= costsList.get(1)[0] && addCost < costsList.get(1)[1]) {
+            level = "С";
+        } else if (addCost >= costsList.get(2)[0] && addCost <= costsList.get(2)[1]) {
+            level = "В";
+        }
+        return level;
+    }
+
+    private class CostResource {
+        protected ObservableList<CostItem> observableList;
+        protected TableView<CostItem> tableView;
+
+        public CostResource(ObservableList<CostItem> observableList, TableView<CostItem> tableView) {
+            this.observableList = observableList;
+            this.tableView = tableView;
+
+            this.observableList.add(new CostItem(new double[]{430, 270, 370, 460}));
+        }
+
+        double getValue(int resourceIndex) {
+            return observableList.get(0).values[resourceIndex];
+        }
+    }
+
     private class TechResource extends BaseResource {
         public TechResource(ObservableList<ResourceItem> observableListExt, TableView<ResourceItem> tableView) {
             super(observableListExt, tableView);
-            randomSeed = 0.11;
-            randomMultiplier = 0.11;
             resourceIndex = 0;
 
             Integer number = 1;
@@ -153,11 +336,71 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
             observableList.add(new ResourceItem("поява дефектних системних компонент,\nякі використовують для розроблення ПЗ", number++));
         }
     }
+    private class CostRiskResource extends BaseResource {
+        public CostRiskResource(ObservableList<ResourceItem> observableListExt, TableView<ResourceItem> tableView) {
+            super(observableListExt, tableView);
+            resourceIndex = 1;
+
+            Integer number = 1;
+            observableList.add(new ResourceItem("недо(пере)оцінювання витрат на реалізацію\nпрограмного проекту (надмірно низька вартість)", number++));
+            observableList.add(new ResourceItem("фінансові ускладнення у компанії-замовника ПЗ", number++));
+            observableList.add(new ResourceItem("фінансові ускладнення у компанії-розробника ПЗ", number++));
+            observableList.add(new ResourceItem("змен(збіль)шення бюджету програмного проекта з\nініціативи компанії-замовника ПЗ під час його реалізації", number++));
+            observableList.add(new ResourceItem("висока вартість виконання повторних робіт,\nнеобхідних для зміни вимог до ПЗ", number++));
+            observableList.add(new ResourceItem("реорганізація структурних підрозділів\nу компанії-замовника ПЗ", number++));
+            observableList.add(new ResourceItem("реорганізація команди виконавців\nу компанії-розробника ПЗ", number++));
+        }
+    }
+    private class PlanResource extends BaseResource {
+        public PlanResource(ObservableList<ResourceItem> observableListExt, TableView<ResourceItem> tableView) {
+            super(observableListExt, tableView);
+            resourceIndex = 2;
+
+            Integer number = 1;
+            observableList.add(new ResourceItem("зміни графіка виконання робіт\nз боку замовника чи розробника ПЗ", number++));
+            observableList.add(new ResourceItem("порушення графіка виконання робіт\nз боку компанії-розробника ПЗ", number++));
+            observableList.add(new ResourceItem("потреба зміни користувацьких вимог\nдо ПЗ з боку компанії-замовника ПЗ", number++));
+            observableList.add(new ResourceItem("потреба зміни функціональних вимог\nдо ПЗ з боку компанії-розробника ПЗ", number++));
+            observableList.add(new ResourceItem("потреба виконання великої кількості повторних\nробіт, необхідних для зміни вимог до ПЗ", number++));
+            observableList.add(new ResourceItem("недо(пере)оцінювання тривалості етапів реалізації\nпрограмного проекту з боку компанії-замовника ПЗ", number++));
+            observableList.add(new ResourceItem("остаточний розмір ПЗ значно перевищує (менший від)\nзаплановані(их) його характеристики", number++));
+            observableList.add(new ResourceItem("поява на ринку аналогічного ПЗ\nдо виходу замовленого", number++));
+            observableList.add(new ResourceItem("поява на ринку більш конкурентоздатного ПЗ", number++));
+
+        }
+    }
+    private class ImplementResource extends BaseResource {
+        public ImplementResource(ObservableList<ResourceItem> observableListExt, TableView<ResourceItem> tableView) {
+            super(observableListExt, tableView);
+            resourceIndex = 3;
+
+            Integer number = 1;
+            observableList.add(new ResourceItem("низький моральний стан персоналу команди виконавців ПЗ", number++));
+            observableList.add(new ResourceItem("низька взаємодія між членами команди виконавців ПЗ", number++));
+            observableList.add(new ResourceItem("пасивність керівника (менеджера) програмного проекту", number++));
+            observableList.add(new ResourceItem("недостатня компетентність керівника\n(менеджера) програмного проекту", number++));
+            observableList.add(new ResourceItem("незадоволеність замовника результатами\nетапів реалізації програмного проекту", number++));
+            observableList.add(new ResourceItem("недостатня кількість фахівців у команді\nвиконавців ПЗ з необхідним професійним рівнем", number++));
+            observableList.add(new ResourceItem("хвороба провідного виконавця в найкритичніший\nмомент розроблення ПЗ", number++));
+            observableList.add(new ResourceItem("одночасна хвороба декількох виконавців\nпідчас розроблення ПЗ", number++));
+            observableList.add(new ResourceItem("неможливість організації необхідного\nнавчання персоналу команди виконавців ПЗ", number++));
+            observableList.add(new ResourceItem("зміна пріоритетів у процесі управління\nпрограмним проектом", number++));
+            observableList.add(new ResourceItem("недо(пере)оцінювання необхідної кількості розробників (підрядників\nі субпідрядників) на етапах життєвого циклу розроблення ПЗ", number++));
+            observableList.add(new ResourceItem("недостатнє (надмірне) документування результатів\nна етапах реалізації програмного проекту", number++));
+            observableList.add(new ResourceItem("нереалістичне прогнозування результатів\nна етапах реалізації програмного проекту", number++));
+            observableList.add(new ResourceItem("недостатній професійний рівень представників\nвід компанії-замовника ПЗ", number++));
+        }
+    }
 
     protected abstract class BaseResource {
+        private final String[] resourceTitles = new String[]{
+                "Множина настання технічних ризикових подій",
+                "Множина настання вартісних ризикових подій",
+                "Множина настання планових ризикових подій",
+                "Множина настання ризикових подій реалізації\nпроцесу управління програмним проектом"
+        };
         protected ObservableList<ResourceItem> observableList;
         protected TableView<ResourceItem> tableView;
-        protected double randomSeed, randomMultiplier;
         protected int resourceIndex = -1; // undefined
 
         public BaseResource(ObservableList<ResourceItem> observableList, TableView<ResourceItem> tableView) {
@@ -167,10 +410,6 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
 
         String getTitle() {
             return resourceIndex >=0 ? resourceTitles[resourceIndex] : "resourceIndex undefined";
-        }
-
-        double makeRandom() {
-            return randomSeed + random() * randomMultiplier;
         }
     }
 
@@ -184,6 +423,19 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
             observableList.add(new ExpertItem("Вартісних ризикових подій", 7, new Integer[]{8, 7, 9, 10, 8, 8, 10, 7, 8, 10}));
             observableList.add(new ExpertItem("Планових ризикових подій", 9, new Integer[]{10, 7, 8, 10, 9, 10, 9, 7, 10, 10}));
             observableList.add(new ExpertItem("Ризикових події реалізації процесу управління", 14, new Integer[]{10, 9, 7, 9, 9, 9, 7, 8, 9, 7}));
+        }
+    }
+
+    private class CostExpert extends BaseExpert {
+        public CostExpert(ObservableList<ExpertItem> observableList, TableView<ExpertItem> tableView) {
+            super(observableList, tableView);
+            randomSeed = 0.2;
+            randomMultiplier = 0.5;
+
+            observableList.add(new ExpertItem("Технічних ризикових подій", 11, new Integer[]{7, 7, 10, 10, 10, 10, 10, 9, 8, 6}));
+            observableList.add(new ExpertItem("Вартісних ризикових подій", 7, new Integer[]{10, 10, 10, 10, 8, 10, 8, 8, 8, 9}));
+            observableList.add(new ExpertItem("Планових ризикових подій", 9, new Integer[]{7, 8, 7, 8, 8, 7, 9, 7, 10, 8}));
+            observableList.add(new ExpertItem("Ризикових події реалізації процесу управління", 14, new Integer[]{9, 7, 9, 7, 7, 9, 10, 10, 10, 10}));
         }
     }
 
@@ -209,8 +461,8 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
         }
     }
 
-    public class ProbabilityItem extends BaseResultItem {
-        public ProbabilityItem(String name) {
+    public class ProbabilityResultItem extends BaseResultItem {
+        public ProbabilityResultItem(String name) {
             super(name);
         }
 
@@ -220,15 +472,48 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
             return getNumeric(result);
         }
     }
+    public class CostResultItem extends BaseResultItem {
+        public CostResultItem(String name) {
+            super(name);
+        }
 
-    protected abstract class BaseResultItem {
+        double startCost, addCost, finalCost;
+
+        public String getStartCost() {
+            return getNumeric(startCost);
+        }
+
+        public String getAddCost() {
+            return getNumeric(addCost);
+        }
+
+        public String getFinalCost() {
+            return getNumeric(finalCost);
+        }
+    }
+
+    protected abstract class BaseNumericItem {
+        protected String name;
+        protected String getNumeric(Double val) {
+            // empty row
+            if (name == null) {
+                return "";
+            }
+
+            if (abs(val - (double)val.intValue()) != 0) {
+                return  new DecimalFormat("#.###").format(val);
+            } else {
+                return Integer.toString(val.intValue());
+            }
+        }
+    }
+    protected abstract class BaseResultItem extends BaseNumericItem {
         final private int OFFSET = 1;
         private final int AM_ELEMENTS = 10;
-        private final String name;
         protected double[] randoms = new double[AM_ELEMENTS];
         protected double[] estimates = new double[AM_ELEMENTS];
         protected double sum;
-        String level;
+        String level = "";
         int rowType = 0; // for row bg color. default uncolored
 
         public BaseResultItem(String name) {
@@ -241,13 +526,6 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
 
         public String getSum() {
             return getNumeric(sum);
-        }
-        protected String getNumeric(Double val) {
-            if (abs(val - (double)val.intValue()) != 0) {
-                return  new DecimalFormat("#.###").format(val);
-            } else {
-                return Integer.toString(val.intValue());
-            }
         }
 
         public String getLevel() {
@@ -334,8 +612,11 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
             this.enabled = new SimpleBooleanProperty(true);
         }
 
-        public String getName() {
+        public String getOrigName() {
             return name;
+        }
+        public String getName() {
+            return name.replaceAll("\n", " ");
         }
 
         public String getNumber() {
@@ -358,6 +639,86 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
         @Override
         public String toString() {
             return "ResourceItem{name='" + name + '\'' + ", enabled=" + isEnabled() + ", number=" + number + '}';
+        }
+    }
+    public class MeasureItem extends BaseNumericItem {
+//        private final String name;
+        BooleanProperty enabled;
+        String measure = "One";
+
+        public MeasureItem(String name) {
+            this.name = name;
+            this.enabled = new SimpleBooleanProperty(true);
+        }
+
+        public String getOrigName() {
+            return name;
+        }
+        public String getName() {
+            return name.replaceAll("\n", " ");
+        }
+
+        public String getMeasure() {
+            return measure;
+        }
+
+        public boolean isEnabled() {
+            return enabled.get();
+        }
+
+        public BooleanProperty enabledProperty() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled.set(enabled);
+        }
+
+        @Override
+        public String toString() {
+            return "name='" + name + '\'' + ", measure=" + measure + '}';
+        }
+    }
+
+    public class CostItem extends BaseNumericItem {
+        private final int OFFSET=1;
+        double[] values;
+
+        public CostItem(double[] values) {
+            this.values = values;
+            this.name = "";
+        }
+
+        public void setValue(int number, String oldValue, String newValue) {
+            if (oldValue.equals(newValue)) {
+                return;
+            }
+            if (newValue.matches("^[\\d\\.]+$")) {
+                var value  = Double.parseDouble(newValue);
+                if (value >= 0) {
+                    this.values[number] = value;
+                }
+            }
+        }
+
+        private String getValue(int number) {
+            return getNumeric(values[number-OFFSET]);
+        }
+
+        public String getN1() {
+            return getValue(1);
+        }
+        public String getN2() {
+            return getValue(2);
+        }
+        public String getN3() {
+            return getValue(3);
+        }
+        public String getN4() {
+            return getValue(4);
+        }
+        public String getSum() {
+            return getNumeric(Arrays.stream(values).sum());
         }
     }
 
@@ -434,13 +795,17 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
     private void initResourceTable(String title, TableView<ResourceItem> tableView, ScrollPane scrollPane, ObservableList<ResourceItem> observableList) {
         // Table already initialized
         if (tableView.getColumns().size() > 0) {
-            tableView.setPrefWidth(scrollPane.getWidth());
-            tableView.getColumns().get(0).setPrefWidth(scrollPane.getWidth() * 0.80);
+            tableView.setPrefWidth(scrollPane.getWidth() - 20);
+            tableView.getColumns().get(1).setPrefWidth(scrollPane.getWidth() * 0.85);
             return;
         }
         
         tableView.setEditable(true);
-        TableColumn<ResourceItem, String> tableColumn = new TableColumn<>(title);
+        TableColumn<ResourceItem, String> tableColumn = new TableColumn<>("N");
+        tableColumn.setCellValueFactory(new PropertyValueFactory<>("number"));
+        tableView.getColumns().add(tableColumn);
+
+        tableColumn = new TableColumn<>(title);
         tableColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
         tableView.getColumns().add(tableColumn);
 
@@ -452,11 +817,58 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
         tableView.setItems(observableList);
         scrollPane.setContent(tableView);
     }
+    private void initMeasureTable(TableView<MeasureItem> tableView, ScrollPane scrollPane, ObservableList<MeasureItem> observableList) {
+        // Table already initialized
+        if (tableView.getColumns().size() > 0) {
+            tableView.setPrefWidth(scrollPane.getWidth() - 20);
+            //tableView.getColumns().get(1).setPrefWidth(scrollPane.getWidth() * 0.85);
+            return;
+        }
+        tableView.setEditable(true);
 
-    protected void initProbabilityTable(TableView<ProbabilityItem> tableView, ScrollPane scrollPane,
-                                        ObservableList<ProbabilityItem> observableList) {
+        TableColumn<MeasureItem, String>tableColumn = new TableColumn<>("Множина ризикових подій");
+        tableColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
+        tableView.getColumns().add(tableColumn);
+
+        tableColumn = new TableColumn<>("Назва заходів");
+        tableColumn.setCellValueFactory(new PropertyValueFactory<>("measure"));
+//        tableColumn.setCellFactory(ComboBoxTableCell.forTableColumn("One", "Two"));
+        tableColumn.setCellFactory(param -> {
+            ComboBox<String> comboBox = new ComboBox<>();
+            comboBox.getItems().addAll("One", "Two");
+            TableCell<MeasureItem, String> cell = new TableCell<>() {
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty) {
+                        setGraphic(null);
+                    } else {
+                        comboBox.setValue(item);
+                        setGraphic(comboBox);
+                    }
+                }
+            };
+            return cell;
+        });
+        tableView.getColumns().add(tableColumn);
+
+        tableView.setItems(observableList);
+        scrollPane.setContent(tableView);
+    }
+
+    protected void initProbabilityResultTable(TableView<ProbabilityResultItem> tableView, ScrollPane scrollPane,
+                                              ObservableList<ProbabilityResultItem> observableList) {
         List<String[]> customConfig = new ArrayList<>(){{
-            add(new String[]{"result", "Йм-ть"});
+            add(new String[]{"result", "Ймовір\nність"});
+        }};
+        initBaseResultTable(tableView, scrollPane, observableList, customConfig);
+    }
+    protected void initCostResultTable(TableView<CostResultItem> tableView, ScrollPane scrollPane,
+                                        ObservableList<CostResultItem> observableList) {
+        List<String[]> customConfig = new ArrayList<>(){{
+            add(new String[]{"startCost", "Початк.\nВартість"});
+            add(new String[]{"addCost", "Додатк.\nВартість"});
+            add(new String[]{"finalCost", "Кінцева\nВартість"});
         }};
         initBaseResultTable(tableView, scrollPane, observableList, customConfig);
     }
@@ -466,24 +878,23 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
         // Table already initialized
         if (tableView.getColumns().size() > 0) {
             tableView.getColumns().get(0).setPrefWidth(scrollPane.getWidth() * 0.25);
-            tableView.setPrefWidth(scrollPane.getWidth());
+            tableView.setPrefWidth(scrollPane.getWidth()-20);
+            tableView.setPrefHeight(scrollPane.getHeight()-20);
             return;
         }
 
         // Contains bug
-//        tableView.setRowFactory(param -> {
-//            return new TableRow<>() {
-//                @Override
-//                protected void updateItem(T item, boolean empty) {
-//                    super.updateItem(item, empty);
+//        tableView.setRowFactory(param -> new TableRow<>() {
+//            @Override
+//            protected void updateItem(T item, boolean empty) {
+//                super.updateItem(item, empty);
 //
-//                    var row = (BaseResultItem) item;
-//                    if (row != null && Arrays.asList(resourceTitles).contains(row.getName())) {
-//                        this.setStyle("-fx-background-color: #eeeeff;");
-//                        System.out.printf("%s %d%n", row.getName(), getIndex());
-//                    }
+//                var row = (BaseResultItem) item;
+//                if (row != null && Arrays.asList(resourceTitles).contains(row.getName())) {
+//                    this.setStyle("-fx-background-color: #eeeeff;");
+//                    System.out.printf("%s %d%n", row.getName(), getIndex());
 //                }
-//            };
+//            }
 //        });
 
         TableColumn<T, String> tableColumn = new TableColumn<>("Назва");
@@ -507,8 +918,14 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
             tableColumn.setPrefWidth(42d);
             tableColumn.setCellValueFactory(new PropertyValueFactory<>(column[0]));
             switch (column[0]) {
-                case "sum" -> tableColumn.setStyle("-fx-background-color: #CCFFFF;");
-                case "result" -> tableColumn.setStyle("-fx-background-color: #CCFFCC;");
+                case "sum" -> {
+                    tableColumn.setPrefWidth(55d);
+                    tableColumn.setStyle("-fx-background-color: #CCFFFF;");
+                }
+                case "result", "startCost", "addCost", "finalCost" -> {
+                    tableColumn.setPrefWidth(57d);
+                    tableColumn.setStyle("-fx-background-color: #CCFFCC;");
+                }
                 case "level" -> tableColumn.setCellFactory(new Callback<>() {
                     @Override
                     public TableCell<T, String> call(TableColumn<T, String> param) {
@@ -526,9 +943,12 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
                                         case "Н" -> "BDD7EE";
                                         case "С" -> "FFD966";
                                         case "В" -> "F4B084";
+                                        case "" -> null;
                                         default -> "C65911";
                                     };
-                                    this.setStyle("-fx-background-color: #" + color + ";");
+                                    if (color != null) {
+                                        this.setStyle("-fx-background-color: #" + color + ";");
+                                    }
                                 }
                             }
                         };
@@ -545,39 +965,13 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
     private void initExpertTable(TableView<ExpertItem> tableView, ScrollPane scrollPane, ObservableList<ExpertItem> observableList) {
         // Table already initialized
         if (tableView.getColumns().size() > 0) {
+            tableView.setPrefWidth(scrollPane.getWidth() - 20);
             return;
         }
 
         tableView.setEditable(true);
         TableColumn<ExpertItem, String> tableColumn = new TableColumn<>("Множина\\ Коеф. вагомості експертів");
         tableColumn.setCellValueFactory(new PropertyValueFactory<>("name"));
-//        tableColumn.setCellFactory(new Callback<>() {
-//            @Override
-//            public TableCell<ExpertItem, String> call(TableColumn<ExpertItem, String> param) {
-//                return new TableCell<>() {
-//                    @Override
-//                    public void updateIndex(int i) {
-//                        super.updateIndex(i);
-//                        if (i == 1) {
-//                            this.setStyle("-fx-background-color: #00eeee;");
-//                        }
-//                        var observableList = param.getTableView().getItems();
-//                        if (i >= 0 && i < observableList.size()) {
-//                            System.out.printf("Cell(%d): %s%n", i, param.getCellData(i));
-//                            System.out.println(observableList.get(i));
-//                        }
-//                    }
-//
-//                    @Override
-//                    protected void updateItem(String item, boolean empty) {
-//                        super.updateItem(item, empty);
-//                        if (item != null) {
-//                            setText(item);
-//                        }
-//                    }
-//                };
-//            }
-//        });
         tableView.getColumns().add(tableColumn);
 
         List<String[]> columnConfig = new ArrayList<>(){{
@@ -606,6 +1000,42 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
             });
             tableView.getColumns().add(tableColumn);
         }
+
+        tableView.setItems(observableList);
+        scrollPane.setContent(tableView);
+    }
+    private void initCostTable(TableView<CostItem> tableView, ScrollPane scrollPane, ObservableList<CostItem> observableList) {
+        // Table already initialized
+        if (tableView.getColumns().size() > 0) {
+            tableView.setPrefWidth(scrollPane.getWidth() - 20);
+            return;
+        }
+
+        tableView.setEditable(true);
+        TableColumn<CostItem, String> tableColumn;
+        List<String[]> columnConfig = new ArrayList<>(){{
+            add(new String[]{"n1", "Технічні"});
+            add(new String[]{"n2", "Вартісні"});
+            add(new String[]{"n3", "Планові"});
+            add(new String[]{"n4", "Реалізації"});
+        }};
+
+        for (String[] column : columnConfig) {
+            tableColumn = new TableColumn<>(column[1]);
+            tableColumn.setCellValueFactory(new PropertyValueFactory<>(column[0]));
+            tableColumn.setPrefWidth(70d);
+
+            tableColumn.setCellFactory(TextFieldTableCell.forTableColumn());
+            tableColumn.setOnEditCommit(event -> {
+                var item = event.getRowValue();
+                item.setValue(event.getTablePosition().getColumn(), event.getOldValue(), event.getNewValue());
+                event.getTableView().refresh();
+            });
+            tableView.getColumns().add(tableColumn);
+        }
+        tableColumn = new TableColumn<>("Сума, тис. грн");
+        tableColumn.setCellValueFactory(new PropertyValueFactory<>("sum"));
+        tableView.getColumns().add(tableColumn);
 
         tableView.setItems(observableList);
         scrollPane.setContent(tableView);

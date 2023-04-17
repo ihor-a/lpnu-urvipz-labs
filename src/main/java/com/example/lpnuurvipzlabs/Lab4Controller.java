@@ -11,14 +11,16 @@ import java.net.URL;
 import java.util.ResourceBundle;
 
 public class Lab4Controller implements Initializable {
-    @FXML private ScrollPane scrollPane1;
-    @FXML private ScrollPane scrollPane2;
-    @FXML private ScrollPane scrollPane3;
-    @FXML private ScrollPane scrollPane4;
-    @FXML private ScrollPane scrollPane5;
-    @FXML private ScrollPane scrollPane6;
+    @FXML private ScrollPane resourcePane1;
+    @FXML private ScrollPane resourcePane2;
+    @FXML private ScrollPane resourcePane3;
+    @FXML private ScrollPane resourcePane4;
+    @FXML private ScrollPane expertPane1;
+    @FXML private ScrollPane expertPane2;
+    @FXML private ScrollPane costsPane2;
     @FXML private ScrollPane resultPane1;
     @FXML private ScrollPane resultPane2;
+    @FXML private ScrollPane planRiskPane;
     @FXML private TextArea resultArea;
 
     private Lab4ServiceImpl lab4Service;
@@ -28,7 +30,8 @@ public class Lab4Controller implements Initializable {
         resultArea.setEditable(false);
         resultArea.setStyle("-fx-font-family: 'monospaced';");
 
-        lab4Service = new Lab4ServiceImpl(scrollPane1, scrollPane2, scrollPane3, scrollPane4, scrollPane5, resultPane1, resultPane2);
+        lab4Service = new Lab4ServiceImpl(resourcePane1, resourcePane2, resourcePane3, resourcePane4,
+                expertPane1, expertPane2, costsPane2, resultPane1, resultPane2, planRiskPane);
     }
 
     @FXML
