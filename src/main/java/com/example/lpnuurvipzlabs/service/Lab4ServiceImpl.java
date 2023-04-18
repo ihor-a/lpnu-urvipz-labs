@@ -125,7 +125,7 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
         costResultTableView.refresh();
 
         // Measures block
-        calcMeasure(costResultObservableList);
+        calcMeasure(costResultObservableList, probabilityResultObservableList);
 
         return getResult();
     }
@@ -250,9 +250,9 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
         return minMax;
     }
 
-    private void calcMeasure(ObservableList<CostResultItem> resultList) {
+    private void calcMeasure(ObservableList<CostResultItem> costList, ObservableList<ProbabilityResultItem> probabilityList) {
         measureObservableList.clear();
-        for (var resultItem: resultList) {
+        for (var resultItem: costList) {
             if (Arrays.asList(BaseResource.resourceTitles).contains(resultItem.getName())) {
                 continue;
             }
@@ -261,13 +261,23 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
             item.addCost = resultItem.addCost;
             measureObservableList.add(item);
         }
+        for (int i=0, j=0; j<probabilityList.size(); j++) {
+            if (Arrays.asList(BaseResource.resourceTitles).contains(probabilityList.get(j).getName())) {
+                continue;
+            }
+            measureObservableList.get(i).result = probabilityList.get(j).result;
+            i++;
+        }
 
         refreshMeasure();
     }
     public void refreshMeasure() {
         for (var measureItem: measureObservableList) {
-            measureItem.finalAddCost = measureItem.addCost * randomMinMax(0.75, 0.99);
+            var random = randomMinMax(0.75, 0.99);
+            measureItem.finalAddCost = measureItem.addCost * random;
             measureItem.finalCost = measureItem.startCost + measureItem.finalAddCost;
+            measureItem.finalResult = measureItem.result * random;
+            measureItem.level = defProbabilityLevel(measureItem.finalResult);
         }
         measureItemTableView.refresh();
     }
@@ -278,6 +288,9 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
     }
 
     private String defProbabilityLevel(double result) {
+        if (result <= 0) {
+            return "";
+        }
         String level = "ДВ";
 
         if (result < 0.1) {
@@ -646,8 +659,8 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
         }
     }
     public class MeasureItem extends BaseNumericItem {
-        String measure, action;
-        double startCost, addCost, finalAddCost, finalCost;
+        String measure, action, level;
+        double result, finalResult, startCost, addCost, finalAddCost, finalCost;
 
         static String[] comboMeasures = {
                 "1-попереднє навчання членів проектного колективу",
@@ -679,6 +692,18 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
         }
         public String getName() {
             return name;
+        }
+
+        public String getLevel() {
+            return level;
+        }
+
+        public String getResult() {
+            return getNumeric(result);
+        }
+
+        public String getFinalResult() {
+            return getNumeric(finalResult);
         }
 
         public String getStartCost() {
@@ -851,9 +876,9 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
         if (tableView.getColumns().size() > 0) {
             tableView.setPrefWidth(scrollPane.getWidth()-20);
             tableView.setPrefHeight(scrollPane.getHeight()-20);
-            tableView.getColumns().get(0).setPrefWidth(scrollPane.getWidth() * 0.3);
-            tableView.getColumns().get(1).setPrefWidth(scrollPane.getWidth() * 0.25);
-            tableView.getColumns().get(2).setPrefWidth(scrollPane.getWidth() * 0.1);
+            tableView.getColumns().get(0).setPrefWidth(scrollPane.getWidth() * 0.26);
+            tableView.getColumns().get(1).setPrefWidth(scrollPane.getWidth() * 0.23);
+            tableView.getColumns().get(2).setPrefWidth(scrollPane.getWidth() * 0.08);
             return;
         }
 
@@ -905,7 +930,44 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
         });
         tableView.getColumns().add(tableColumn);
 
-        //double startCost, addCost, finalCost;
+        tableColumn = new TableColumn<>("Початкова\nЙмовірність");
+        tableColumn.setCellValueFactory(new PropertyValueFactory<>("result"));
+        tableView.getColumns().add(tableColumn);
+
+        tableColumn = new TableColumn<>("Кінцева\nЙмовірність");
+        tableColumn.setCellValueFactory(new PropertyValueFactory<>("finalResult"));
+        tableView.getColumns().add(tableColumn);
+
+        tableColumn = new TableColumn<>("Рівень");
+        tableColumn.setCellValueFactory(new PropertyValueFactory<>("level"));
+        tableColumn.setCellFactory(new Callback<>() {
+            @Override
+            public TableCell<MeasureItem, String> call(TableColumn<MeasureItem, String> param) {
+                return new TableCell<>() {
+                    @Override
+                    protected void updateItem(String item, boolean empty) {
+                        super.updateItem(item, empty);
+
+                        if (item != null) {
+                            setText(item);
+                            var color = switch (item) {
+                                case "ДН" -> "DDEBF7";
+                                case "Н" -> "BDD7EE";
+                                case "С" -> "FFD966";
+                                case "В" -> "F4B084";
+                                case "" -> null;
+                                default -> "C65911";
+                            };
+                            if (color != null) {
+                                this.setStyle("-fx-background-color: #" + color + ";");
+                            }
+                        }
+                    }
+                };
+            }
+        });
+        tableView.getColumns().add(tableColumn);
+
         tableColumn = new TableColumn<>("Початкова\nВартість");
         tableColumn.setCellValueFactory(new PropertyValueFactory<>("startCost"));
         tableView.getColumns().add(tableColumn);
