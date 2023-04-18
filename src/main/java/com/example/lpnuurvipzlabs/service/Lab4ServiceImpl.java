@@ -685,8 +685,8 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
 
         public MeasureItem(String name) {
             this.name = name;
-            measure = comboMeasures[4];
-            action = comboActions[0];
+            measure = comboMeasures[(int) randomMinMax(0,18)];
+            action = comboActions[(int) randomMinMax(0,3)];
         }
         public String getName() {
             return name;
