@@ -91,15 +91,6 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
     public String calculate() {
         initTables();
         resetResult();
-        appendResultText("Lab4 result");
-        appendResultNewline();
-
-//        for (var item: expertObservableList1) {
-//            appendResultText(item.toString());
-//        }
-//        for (var item: techResource.observableList) {
-//            appendResultText(item.toString());
-//        }
 
         // Probability block
         probabilityResultObservableList.clear();
@@ -228,7 +219,6 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
             costResultItem.addCost = Arrays.stream(costResultItem.estimates).reduce(0, Double::sum) /
                     expert.getSumValue(resource.resourceIndex) * costResultItem.startCost;
             costResultItem.finalCost = costResultItem.startCost + costResultItem.addCost;
-//            costResultItem.level = defProbabilityLevel(costResultItem.result);
 
             resultList.add(costResultItem);
             row++;
@@ -248,7 +238,6 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
         costResultItem.startCost = costResource.getValue(resource.resourceIndex);
         costResultItem.addCost = resultList.stream().map(item -> item.addCost).reduce(0d, Double::sum);
         costResultItem.finalCost = costResultItem.startCost + costResultItem.addCost;
-//        costResultItem.level = defProbabilityLevel(costResultItem.result);
 
         resultList.add(0, costResultItem);
 
@@ -1016,8 +1005,6 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
                             @Override
                             protected void updateItem(String item, boolean empty) {
                                 super.updateItem(item, empty);
-                                //TableRow<T> tableRow = getTableRow();
-                                //tableRow.setStyle("-fx-background-color: #eeeeff;");
 
                                 if (item != null) {
                                     setText(item);
