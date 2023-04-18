@@ -21,15 +21,11 @@ public class Lab4Controller implements Initializable {
     @FXML private ScrollPane resultPane1;
     @FXML private ScrollPane resultPane2;
     @FXML private ScrollPane planRiskPane;
-    @FXML private TextArea resultArea;
 
     private Lab4ServiceImpl lab4Service;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
-        resultArea.setEditable(false);
-        resultArea.setStyle("-fx-font-family: 'monospaced';");
-
         lab4Service = new Lab4ServiceImpl(resourcePane1, resourcePane2, resourcePane3, resourcePane4,
                 expertPane1, expertPane2, costsPane2, resultPane1, resultPane2, planRiskPane);
     }
@@ -37,9 +33,21 @@ public class Lab4Controller implements Initializable {
     @FXML
     protected void onCalculateButtonClick() {
         try {
-            resultArea.setText(
-                    lab4Service.calculate()
-            );
+            lab4Service.calculate();
+
+        } catch (RuntimeException e) {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Exception");
+            alert.setContentText(e.getMessage());
+            alert.show();
+        }
+    }
+
+    @FXML
+    protected void onCalculateMeasureButtonClick() {
+        try {
+            lab4Service.refreshMeasure();
+
         } catch (RuntimeException e) {
             Alert alert = new Alert(Alert.AlertType.ERROR);
             alert.setTitle("Exception");

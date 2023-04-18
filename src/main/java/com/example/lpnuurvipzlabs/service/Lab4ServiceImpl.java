@@ -6,7 +6,6 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.CheckBoxTableCell;
-import javafx.scene.control.cell.ComboBoxTableCell;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.util.Callback;
@@ -135,7 +134,7 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
         costResultTableView.refresh();
 
         // Measures block
-        calcMeasure(techResource);
+        calcMeasure(costResultObservableList);
 
         return getResult();
     }
@@ -262,15 +261,31 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
         return minMax;
     }
 
-    private void calcMeasure(BaseResource resource) {
-
-        for (var resourceItem: resource.observableList) {
-            if (!resourceItem.isEnabled()) {
+    private void calcMeasure(ObservableList<CostResultItem> resultList) {
+        measureObservableList.clear();
+        for (var resultItem: resultList) {
+            if (Arrays.asList(BaseResource.resourceTitles).contains(resultItem.getName())) {
                 continue;
             }
-
-            measureObservableList.add(new MeasureItem(resourceItem.getName()));
+            var item = new MeasureItem(resultItem.getName());
+            item.startCost = resultItem.startCost;
+            item.addCost = resultItem.addCost;
+            measureObservableList.add(item);
         }
+
+        refreshMeasure();
+    }
+    public void refreshMeasure() {
+        for (var measureItem: measureObservableList) {
+            measureItem.finalAddCost = measureItem.addCost * randomMinMax(0.75, 0.99);
+            measureItem.finalCost = measureItem.startCost + measureItem.finalAddCost;
+        }
+        measureItemTableView.refresh();
+    }
+
+    private double randomMinMax(double min, double max) {
+        var random = new Random();
+        return min + (max - min) * random.nextDouble();
     }
 
     private String defProbabilityLevel(double result) {
@@ -393,7 +408,7 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
     }
 
     protected abstract class BaseResource {
-        private final String[] resourceTitles = new String[]{
+        static final String[] resourceTitles = new String[]{
                 "Множина настання технічних ризикових подій",
                 "Множина настання вартісних ризикових подій",
                 "Множина настання планових ризикових подій",
@@ -642,38 +657,63 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
         }
     }
     public class MeasureItem extends BaseNumericItem {
-//        private final String name;
-        BooleanProperty enabled;
-        String measure = "One";
+        String measure, action;
+        double startCost, addCost, finalAddCost, finalCost;
+
+        static String[] comboMeasures = {
+                "1-попереднє навчання членів проектного колективу",
+                "2-узгодження детального переліку вимог до ПЗ із замовником",
+                "3-внесення узгодженого переліку вимог до ПЗ замовника в договір",
+                "4-точне слідування вимогам замовника\nз узгодженого переліку вимог до ПЗ",
+                "5-попередні дослідження ринку",
+                "6-експертна оцінка програмного проекту\nдосвідченим стороннім консультантом",
+                "7-консультації досвідченого стороннього консультанта",
+                "8-тренінг з вивчення необхідних інструментів розроблення ПЗ",
+                "9-укладання договору страхування",
+                "10-використання \"шаблонних\" рішень з вдалих попередніх\nпроектів при управлінні програмним проектом",
+                "11-підготовка документів, які показують важливість даного проекту\nдля досягнення фінансових цілей компанії-розробника",
+                "12-реорганізація роботи проектного колективу так, щоб обов'язки\nта робота членів колективу перекривали один одного",
+                "13-придбання (замовлення) частини компонент розроблюваного ПЗ",
+                "14-заміна потенційно дефектних компонент розроблюваного ПЗ придбаними\nкомпонентами, які гарантують якість виконання роботи",
+                "15-придбання більш продуктивної бази даних",
+                "16-використання генератора програмного коду",
+                "17-реорганізація роботи проектного колективу залежно від рівня\nтруднощів виконання завдань та професійних рівнів розробників",
+                "18-повторне використання придатних компонент ПЗ, які були\nрозроблені для інших програмних проектів",
+                "19-аналіз доцільності розроблення даного ПЗ",
+        };
+        static String[] comboActions = {"Пом'якшення", "Прийняття", "Ухилення", "Передача"};
 
         public MeasureItem(String name) {
             this.name = name;
-            this.enabled = new SimpleBooleanProperty(true);
-        }
-
-        public String getOrigName() {
-            return name;
+            measure = comboMeasures[4];
+            action = comboActions[0];
         }
         public String getName() {
-            return name.replaceAll("\n", " ");
+            return name;
+        }
+
+        public String getStartCost() {
+            return getNumeric(startCost);
+        }
+
+        public String getAddCost() {
+            return getNumeric(addCost);
+        }
+
+        public String getFinalAddCost() {
+            return getNumeric(finalAddCost);
+        }
+
+        public String getFinalCost() {
+            return getNumeric(finalCost);
         }
 
         public String getMeasure() {
-            return measure;
+            return name == null || name.equals("") ? "" : measure;
         }
-
-        public boolean isEnabled() {
-            return enabled.get();
+        public String getAction() {
+            return name == null || name.equals("") ? "" : action;
         }
-
-        public BooleanProperty enabledProperty() {
-            return enabled;
-        }
-
-        public void setEnabled(boolean enabled) {
-            this.enabled.set(enabled);
-        }
-
         @Override
         public String toString() {
             return "name='" + name + '\'' + ", measure=" + measure + '}';
@@ -820,10 +860,14 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
     private void initMeasureTable(TableView<MeasureItem> tableView, ScrollPane scrollPane, ObservableList<MeasureItem> observableList) {
         // Table already initialized
         if (tableView.getColumns().size() > 0) {
-            tableView.setPrefWidth(scrollPane.getWidth() - 20);
-            //tableView.getColumns().get(1).setPrefWidth(scrollPane.getWidth() * 0.85);
+            tableView.setPrefWidth(scrollPane.getWidth()-20);
+            tableView.setPrefHeight(scrollPane.getHeight()-20);
+            tableView.getColumns().get(0).setPrefWidth(scrollPane.getWidth() * 0.3);
+            tableView.getColumns().get(1).setPrefWidth(scrollPane.getWidth() * 0.25);
+            tableView.getColumns().get(2).setPrefWidth(scrollPane.getWidth() * 0.1);
             return;
         }
+
         tableView.setEditable(true);
 
         TableColumn<MeasureItem, String>tableColumn = new TableColumn<>("Множина ризикових подій");
@@ -832,15 +876,14 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
 
         tableColumn = new TableColumn<>("Назва заходів");
         tableColumn.setCellValueFactory(new PropertyValueFactory<>("measure"));
-//        tableColumn.setCellFactory(ComboBoxTableCell.forTableColumn("One", "Two"));
         tableColumn.setCellFactory(param -> {
             ComboBox<String> comboBox = new ComboBox<>();
-            comboBox.getItems().addAll("One", "Two");
+            comboBox.getItems().addAll(MeasureItem.comboMeasures);
             TableCell<MeasureItem, String> cell = new TableCell<>() {
                 @Override
                 protected void updateItem(String item, boolean empty) {
                     super.updateItem(item, empty);
-                    if (empty) {
+                    if (item == null || empty || item.equals("")) {
                         setGraphic(null);
                     } else {
                         comboBox.setValue(item);
@@ -850,6 +893,46 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
             };
             return cell;
         });
+        tableView.getColumns().add(tableColumn);
+
+        tableColumn = new TableColumn<>("Напрямок");
+        tableColumn.setCellValueFactory(new PropertyValueFactory<>("action"));
+        tableColumn.setCellFactory(param -> {
+            ComboBox<String> comboBox = new ComboBox<>();
+            comboBox.getItems().addAll(MeasureItem.comboActions);
+            TableCell<MeasureItem, String> cell = new TableCell<>() {
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (item == null || empty || item.equals("")) {
+                        setGraphic(null);
+                    } else {
+                        comboBox.setValue(item);
+                        setGraphic(comboBox);
+                    }
+                }
+            };
+            return cell;
+        });
+        tableView.getColumns().add(tableColumn);
+
+        //double startCost, addCost, finalCost;
+        tableColumn = new TableColumn<>("Початкова\nВартість");
+        tableColumn.setCellValueFactory(new PropertyValueFactory<>("startCost"));
+        tableView.getColumns().add(tableColumn);
+
+        tableColumn = new TableColumn<>("Початк. рівень\nДодатк. Вартості");
+        tableColumn.setCellValueFactory(new PropertyValueFactory<>("addCost"));
+        tableColumn.setPrefWidth(100d);
+        tableView.getColumns().add(tableColumn);
+
+        tableColumn = new TableColumn<>("Кінцевий рівень\nДодатк. Вартості");
+        tableColumn.setCellValueFactory(new PropertyValueFactory<>("finalAddCost"));
+        tableColumn.setPrefWidth(100d);
+        tableView.getColumns().add(tableColumn);
+
+        tableColumn = new TableColumn<>("Кінцева\nВартість");
+        tableColumn.setCellValueFactory(new PropertyValueFactory<>("finalCost"));
         tableView.getColumns().add(tableColumn);
 
         tableView.setItems(observableList);
@@ -997,6 +1080,10 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
                 var item = event.getRowValue();
                 item.setValue(event.getTablePosition().getColumn(), event.getOldValue(), event.getNewValue());
                 event.getTableView().refresh();
+
+                probabilityResultObservableList.clear();
+                costResultObservableList.clear();
+                measureObservableList.clear();
             });
             tableView.getColumns().add(tableColumn);
         }
@@ -1030,6 +1117,10 @@ public class Lab4ServiceImpl extends TextResultBase implements Lab4Service {
                 var item = event.getRowValue();
                 item.setValue(event.getTablePosition().getColumn(), event.getOldValue(), event.getNewValue());
                 event.getTableView().refresh();
+
+                probabilityResultObservableList.clear();
+                costResultObservableList.clear();
+                measureObservableList.clear();
             });
             tableView.getColumns().add(tableColumn);
         }
