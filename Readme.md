@@ -1,4 +1,4 @@
-# Java/Spring Project Example
+# JavaFX Project Example
 JavaFX version 17 is required
 
 ## Description
